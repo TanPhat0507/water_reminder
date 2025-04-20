@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'signup_page.dart';
+import 'login_page.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class SignupPage extends StatefulWidget {
+  const SignupPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<SignupPage> createState() => _SignupPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _SignupPageState extends State<SignupPage> {
   @override
   void initState() {
     super.initState();
@@ -26,14 +26,15 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               smallSpace,
-              loginImage,
               appTitle(textTheme),
               appSubtitle,
+              signupImage,
               smallSpace,
               usernameField(),
               passwordField(),
+              repasswordField(),
               smallSpace,
-              loginButton(),
+              signupButton(),
               smallSpace,
               signupTextLink(context),
             ],
@@ -47,17 +48,17 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget get smallSpace => const SizedBox(height: 20);
 
-  Widget get loginImage {
+  Widget get signupImage {
     return SizedBox(
       width: 150,
       height: 150,
-      child: Image.asset("assets/login.jpg"),
+      child: Image.asset("assets/signup.jpg"),
     );
   }
 
   Text appTitle(TextTheme textTheme) {
     return Text(
-      "MP WATER REMINDER",
+      "WELCOME!",
       textAlign: TextAlign.center,
       style: textTheme.titleLarge?.copyWith(
         fontSize: 24,
@@ -69,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget get appSubtitle {
     return const Text(
-      "Remind you to drink water on time",
+      "Create your account",
       textAlign: TextAlign.center,
       style: TextStyle(fontSize: 12, color: Color(0xFF19A7CE)),
     );
@@ -136,7 +137,38 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget loginButton() {
+  Widget repasswordField() {
+    return Container(
+      width: 250,
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Color(0xFF19A7CE)),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.transparent,
+            child: Icon(Icons.lock_outline, color: Color(0xFF19A7CE)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              obscureText: true,
+              decoration: InputDecoration(
+                hintText: "Confirm password",
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget signupButton() {
     return SizedBox(
       width: 250,
       child: ElevatedButton(
@@ -154,7 +186,7 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              "Log in",
+              "Sign up",
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),
           ],
@@ -170,18 +202,19 @@ class _LoginPageState extends State<LoginPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Text(
-            "Don't have an account? ",
+            "Already have a account? ",
             style: TextStyle(color: Colors.grey, fontSize: 14),
           ),
           GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SignupPage()),
+                MaterialPageRoute(builder: (context) => const LoginPage()),
               );
             },
+
             child: const Text(
-              "Sign up",
+              "Log in",
               style: TextStyle(
                 color: Color(0xFF146C94),
                 fontSize: 16,
