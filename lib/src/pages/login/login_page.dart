@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../service/authentication_service.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
-
+  LoginPage({super.key});
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -30,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
               appTitle(textTheme),
               appSubtitle,
               smallSpace,
-              usernameField(),
+              emailField(),
               passwordField(),
               smallSpace,
               loginButton(),
@@ -75,7 +77,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget usernameField() {
+  Widget emailField() {
     return Container(
       width: 250,
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -94,8 +96,9 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
+              controller: widget._emailController,
               decoration: InputDecoration(
-                hintText: "Username",
+                hintText: "Email",
                 border: InputBorder.none,
               ),
             ),
@@ -124,6 +127,7 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
+              controller: widget._passwordController,
               obscureText: true,
               decoration: InputDecoration(
                 hintText: "Password",
@@ -148,7 +152,13 @@ class _LoginPageState extends State<LoginPage> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
-        onPressed: () {},
+        onPressed: () async {
+          await AuthService().login(
+            email: widget._emailController.text,
+            password: widget._passwordController.text,
+            context: context,
+          );
+        },
         child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -177,7 +187,7 @@ class _LoginPageState extends State<LoginPage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SignupPage()),
+                MaterialPageRoute(builder: (context) => SignupPage()),
               );
             },
             child: const Text(

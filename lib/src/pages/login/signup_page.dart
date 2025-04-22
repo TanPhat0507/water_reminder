@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../service/authentication_service.dart';
 import 'login_page.dart';
 
 class SignupPage extends StatefulWidget {
-  const SignupPage({super.key});
+  SignupPage({super.key});
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _repasswordController = TextEditingController();
 
   @override
   State<SignupPage> createState() => _SignupPageState();
@@ -30,7 +35,7 @@ class _SignupPageState extends State<SignupPage> {
               appSubtitle,
               signupImage,
               smallSpace,
-              usernameField(),
+              emailField(),
               passwordField(),
               repasswordField(),
               smallSpace,
@@ -76,7 +81,7 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  Widget usernameField() {
+  Widget emailField() {
     return Container(
       width: 250,
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -95,6 +100,7 @@ class _SignupPageState extends State<SignupPage> {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
+              controller: widget._emailController,
               decoration: InputDecoration(
                 hintText: "Username",
                 border: InputBorder.none,
@@ -125,6 +131,7 @@ class _SignupPageState extends State<SignupPage> {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
+              controller: widget._passwordController,
               obscureText: true,
               decoration: InputDecoration(
                 hintText: "Password",
@@ -156,6 +163,7 @@ class _SignupPageState extends State<SignupPage> {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
+              controller: widget._repasswordController,
               obscureText: true,
               decoration: InputDecoration(
                 hintText: "Confirm password",
@@ -180,7 +188,14 @@ class _SignupPageState extends State<SignupPage> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
-        onPressed: () {},
+        onPressed: () async {
+          await AuthService().signup(
+            email: widget._emailController.text,
+            password: widget._passwordController.text,
+            repassword: widget._repasswordController.text,
+            context: context,
+          );
+        },
         child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -209,7 +224,7 @@ class _SignupPageState extends State<SignupPage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
+                MaterialPageRoute(builder: (context) => LoginPage()),
               );
             },
 

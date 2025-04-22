@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class OnboardPage extends StatefulWidget {
-  const OnboardPage({super.key});
+class GenderPage extends StatefulWidget {
+  const GenderPage({super.key});
 
   @override
-  State<OnboardPage> createState() => _OnboardPageState();
+  State<GenderPage> createState() => _GenderPageState();
 }
 
-class _OnboardPageState extends State<OnboardPage> {
+class _GenderPageState extends State<GenderPage> {
   String? selectedGender;
 
   @override
@@ -59,7 +59,7 @@ class _OnboardPageState extends State<OnboardPage> {
           },
           child: Column(
             children: [
-              Image.asset("assets/male.png", height: 100, width: 100),
+              Image.asset("assets/male.png", height: 150, width: 150),
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.only(right: 15),
@@ -90,7 +90,7 @@ class _OnboardPageState extends State<OnboardPage> {
           },
           child: Column(
             children: [
-              Image.asset("assets/femenine.png", height: 100, width: 100),
+              Image.asset("assets/femenine.png", height: 150, width: 150),
               const SizedBox(height: 8),
               Text(
                 "Female",
