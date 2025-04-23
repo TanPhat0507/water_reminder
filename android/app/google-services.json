@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1082051697803-nt1f4k0qu6emcub24tfgaegajmv4b1vr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.water_reminder",
+            "certificate_hash": "40a2c50ead5210bfcb9ff6a89fe401aa1ba7cc21"
+          }
+        },
+        {
           "client_id": "1082051697803-e7t0v309meibd6vrqa0opdgkfo2s9t7f.apps.googleusercontent.com",
           "client_type": 3
         }
