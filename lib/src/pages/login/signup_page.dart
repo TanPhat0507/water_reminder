@@ -25,24 +25,26 @@ class _SignupPageState extends State<SignupPage> {
 
     return Scaffold(
       body: Center(
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.7,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              smallSpace,
-              appTitle(textTheme),
-              appSubtitle,
-              signupImage,
-              smallSpace,
-              emailField(),
-              passwordField(),
-              repasswordField(),
-              smallSpace,
-              signupButton(),
-              smallSpace,
-              signupTextLink(context),
-            ],
+        child: SingleChildScrollView(
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.7,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                smallSpace,
+                appTitle(textTheme),
+                appSubtitle,
+                signupImage,
+                smallSpace,
+                emailField(),
+                passwordField(),
+                repasswordField(),
+                smallSpace,
+                signupButton(),
+                smallSpace,
+                signupTextLink(context),
+              ],
+            ),
           ),
         ),
       ),
@@ -95,14 +97,14 @@ class _SignupPageState extends State<SignupPage> {
           const CircleAvatar(
             radius: 20,
             backgroundColor: Colors.transparent,
-            child: Icon(Icons.person_outline, color: Color(0xFF19A7CE)),
+            child: Icon(Icons.email_outlined, color: Color(0xFF19A7CE)),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: widget._emailController,
               decoration: InputDecoration(
-                hintText: "Username",
+                hintText: "Email",
                 border: InputBorder.none,
               ),
             ),
