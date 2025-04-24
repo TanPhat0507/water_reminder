@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,120 +9,116 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 1;
-  double _currentIntake = 1200; // Lượng nước đã uống
-  double _goalIntake = 1200; // Mục tiêu uống nước
-
-  final List<Map<String, dynamic>> _history = [
-    {'time': '9:00', 'amount': 300},
-    {'time': '10:00', 'amount': 500},
-    {'time': '11:00', 'amount': 700},
-    {'time': '22:00', 'amount': 300},
-  ];
 
   final List<Widget> _screens = [
     Center(child: Text('Report Page')),
-    Center(child: Text('Home Page')),
+    Center(child: ProgressIndicatorWidget()), // Progress Indicator widget
     Center(child: Text('Settings')),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Text('Home', style: TextStyle(color: Colors.black)),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(CupertinoIcons.settings),
-            onPressed: () {
-              // Your settings action here
+      body: Column(
+        children: [
+          Expanded(child: _screens[_currentIndex]),
+          buildBottomNavigationBar(), // Bottom Navigation Bar will be here
+        ],
+      ),
+    );
+  }
+
+  // === Bottom Navigation Bar ===
+  Widget buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      currentIndex: _currentIndex,
+      onTap: (index) {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      backgroundColor: const Color(0xFFF8F4F4),
+      selectedItemColor: Color(0xFF19A7CE),
+      unselectedItemColor: Colors.grey,
+      showSelectedLabels: false,
+      showUnselectedLabels: false,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: ''),
+        BottomNavigationBarItem(icon: Icon(Icons.opacity), label: ''),
+        BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
+      ],
+    );
+  }
+}
+
+const TWO_PI = 3.14 * 2;
+
+class ProgressIndicatorWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final size = 200.0;
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(title: Text("Progress Indicator")),
+        body: Center(
+          // This Tween Animation Builder is Just For Demonstration, Do not use this AS-IS in Projects
+          // Create and Animation Controller and Control the animation that way.
+          child: TweenAnimationBuilder(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: Duration(seconds: 4),
+            builder: (context, value, child) {
+              int percentage = (value * 100).ceil();
+              return Container(
+                width: size,
+                height: size,
+                child: Stack(
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (rect) {
+                        return SweepGradient(
+                          startAngle: 0.0,
+                          endAngle: TWO_PI,
+                          stops: [value, value],
+                          // 0.0 , 0.5 , 0.5 , 1.0
+                          center: Alignment.center,
+                          colors: [
+                            Color(0xFF19A7CE),
+                            Colors.grey.withAlpha(55),
+                          ],
+                        ).createShader(rect);
+                      },
+                      child: Container(
+                        width: size,
+                        height: size,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          //image: DecorationImage(image: Image.asset("assets/images/radial_scale.png").image)
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: Container(
+                        width: size - 40,
+                        height: size - 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            "$percentage",
+                            style: TextStyle(fontSize: 40),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Greeting message
-            Text(
-              'Hi, lytanphat',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-
-            // Progress Ring
-            Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    value: _currentIntake / _goalIntake,
-                    strokeWidth: 10,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Color(0xFF19A7CE),
-                    ),
-                  ),
-                  Text(
-                    '$_currentIntake ml / $_goalIntake ml',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  Positioned(
-                    bottom: 20,
-                    child: FloatingActionButton(
-                      onPressed: () {
-                        // Add more water intake
-                      },
-                      child: Icon(Icons.add),
-                      backgroundColor: Color(0xFF19A7CE),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20),
-
-            // History section
-            Text(
-              'History',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _history.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: Icon(Icons.local_drink),
-                    title: Text('${_history[index]['time']}'),
-                    subtitle: Text('${_history[index]['amount']} ml'),
-                  );
-                },
-              ),
-            ),
-          ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        backgroundColor: const Color(0xFFF8F4F4),
-        selectedItemColor: Color(0xFF19A7CE),
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.opacity), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
-        ],
       ),
     );
   }
