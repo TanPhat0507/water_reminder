@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import '../main/history_page.dart';
+
 import '../main/home_page.dart';
 
 class WeightPage extends StatefulWidget {
@@ -124,7 +126,7 @@ class _WeightPageState extends State<WeightPage> {
           onPressed: () async {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => HomePage()),
+              MaterialPageRoute(builder: (context) => HistoryPage()),
             );
           },
           child: const Text(
