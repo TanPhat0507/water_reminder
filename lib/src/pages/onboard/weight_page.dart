@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import '../main/home_page.dart';
 
 class WeightPage extends StatefulWidget {
   const WeightPage({super.key});
@@ -120,7 +121,12 @@ class _WeightPageState extends State<WeightPage> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          onPressed: () {},
+          onPressed: () async {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
+          },
           child: const Text(
             "NEXT",
             style: TextStyle(color: Colors.white, fontSize: 16),

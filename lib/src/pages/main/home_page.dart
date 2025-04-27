@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -18,12 +19,21 @@ class _HomePageState extends State<HomePage> {
   double _customAmount = 0.0;
   double _previousProgress = 0.0;
 
+  double _currentIntake = 1200; // Lượng nước đã uống
+  double _goalIntake = 1200; // Mục tiêu uống nước
+  double _customAmount = 0.0;
   // Lượng nước nhập tay
   TextEditingController _waterAmountController = TextEditingController();
 
   bool _isButtonPressed = false;
 
   final List<Map<String, dynamic>> _history = []; //lưu lịch sử uống nước
+  final List<Map<String, dynamic>> _history = [
+    {'time': '9:00', 'amount': 300},
+    {'time': '10:00', 'amount': 500},
+    {'time': '11:00', 'amount': 700},
+    {'time': '22:00', 'amount': 300},
+  ];
 
   late List<Widget> _screens;
 
@@ -89,6 +99,21 @@ class _HomePageState extends State<HomePage> {
       Center(child: Text('Settings')),
     ];
 
+    _screens = [
+      Center(child: Text('Report Page')),
+      Center(
+        child: HomePageContent(
+          currentIntake: _currentIntake,
+          goalIntake: _goalIntake,
+          history: _history,
+        ),
+      ),
+      Center(child: Text('Settings')),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(kToolbarHeight),
@@ -173,12 +198,19 @@ class _HomePageContentState extends State<HomePageContent> {
   int? _selectedDropIndex;
   TextEditingController _waterAmountController = TextEditingController();
   double _scale = 1.0;
+  late double _currentIntake;
+  late double _goalIntake;
+  bool _isButtonPressed = false;
+  double _scale = 1.0;
+  int? _selectedDropIndex;
 
   @override
   void initState() {
     super.initState();
     // _currentIntake = widget.currentIntake;
     // _goalIntake = widget.goalIntake;
+    _currentIntake = widget.currentIntake;
+    _goalIntake = widget.goalIntake;
   }
 
   @override
@@ -215,6 +247,12 @@ class _HomePageContentState extends State<HomePageContent> {
         builder: (context, value, child) {
           double safeValue = value.clamp(0.0, 1.0);
           double currentMl = (safeValue * widget.goalIntake).toDouble();
+    return Center(
+      child: TweenAnimationBuilder(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: Duration(seconds: 4),
+        builder: (context, value, child) {
+          int percentage = (_currentIntake / _goalIntake * 100).toInt();
 
           return Container(
             width: size,
@@ -234,6 +272,7 @@ class _HomePageContentState extends State<HomePageContent> {
                     ),
                   ),
                 ),
+
                 ShaderMask(
                   shaderCallback: (rect) {
                     return SweepGradient(
@@ -247,6 +286,10 @@ class _HomePageContentState extends State<HomePageContent> {
                         Colors.transparent,
                         Colors.transparent,
                       ],
+                      endAngle: 3.14 * 2,
+                      stops: [value, value],
+                      center: Alignment.center,
+                      colors: [Color(0xFF19A7CE), Colors.grey.withAlpha(55)],
                     ).createShader(rect);
                   },
                   child: Container(
@@ -263,10 +306,19 @@ class _HomePageContentState extends State<HomePageContent> {
                       //     offset: Offset(0, 4),
                       //   ),
                       // ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          spreadRadius: 3,
+                          blurRadius: 5,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 Container(
+                  //% lượng nước
                   width: size - 40,
                   height: size - 40,
                   decoration: BoxDecoration(
@@ -279,6 +331,7 @@ class _HomePageContentState extends State<HomePageContent> {
                       children: [
                         Text(
                           "${currentMl.toInt()} ml",
+                          "$_currentIntake ml",
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,
@@ -287,6 +340,7 @@ class _HomePageContentState extends State<HomePageContent> {
                         ),
                         Text(
                           "/${widget.goalIntake.toInt()} ml",
+                          "/$_goalIntake ml",
                           style: TextStyle(fontSize: 20, color: Colors.grey),
                         ),
                       ],
@@ -303,11 +357,13 @@ class _HomePageContentState extends State<HomePageContent> {
                       onTapDown: (_) {
                         setState(() {
                           _scale = 1.2;
+                          _scale = 1.2; // Phóng to khi bấm
                         });
                       },
                       onTapUp: (_) {
                         setState(() {
                           _scale = 1.0;
+                          _scale = 1.0; // Trở lại bình thường
                         });
                         _showAddWaterDialog();
                       },
@@ -470,6 +526,17 @@ class _HomePageContentState extends State<HomePageContent> {
   void _onSelected(int amount) {
     widget.onAddWater(amount);
   }
+
+    setState(() {
+      _currentIntake += amount;
+    });
+  }
+
+  //nhập cụ thể lượng nước
+  TextEditingController _waterAmountController = TextEditingController();
+
+  // Lưu giá trị nhập tay của người dùng
+  double _customAmount = 0.0;
 
   // === History Section ===
   Widget buildHistorySection(List<Map<String, dynamic>> history) {

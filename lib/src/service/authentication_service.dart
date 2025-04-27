@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:water_reminder/src/pages/login/login_page.dart';
-import '../pages/home_page.dart';
+import '../pages/login/welcome_page.dart';
 
 class AuthService {
   Future<void> signup({
@@ -32,7 +32,9 @@ class AuthService {
       await Future.delayed(const Duration(seconds: 1));
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (BuildContext context) => const Home()),
+        MaterialPageRoute(
+          builder: (BuildContext context) => const WelcomePage(),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       String message = '';
@@ -68,7 +70,9 @@ class AuthService {
       await Future.delayed(const Duration(seconds: 1));
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (BuildContext context) => const Home()),
+        MaterialPageRoute(
+          builder: (BuildContext context) => const WelcomePage(),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       String message = '';

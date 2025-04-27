@@ -69,6 +69,7 @@ flutter:
     - assets/weight-loss.png
     - assets/back.png
     - assets/weight.jpg
+    - assets/glass.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

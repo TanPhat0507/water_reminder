@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:water_reminder/src/pages/onboard/weight_page.dart';
 
 class GenderPage extends StatefulWidget {
   const GenderPage({super.key});
@@ -59,7 +60,7 @@ class _GenderPageState extends State<GenderPage> {
           },
           child: Column(
             children: [
-              Image.asset("assets/male.png", height: 150, width: 150),
+              Image.asset("assets/male.png", height: 100, width: 100),
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.only(right: 15),
@@ -90,7 +91,7 @@ class _GenderPageState extends State<GenderPage> {
           },
           child: Column(
             children: [
-              Image.asset("assets/femenine.png", height: 150, width: 150),
+              Image.asset("assets/femenine.png", height: 100, width: 100),
               const SizedBox(height: 8),
               Text(
                 "Female",
@@ -127,7 +128,12 @@ class _GenderPageState extends State<GenderPage> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          onPressed: () {},
+          onPressed: () async {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => WeightPage()),
+            );
+          },
           child: const Text(
             "NEXT",
             style: TextStyle(color: Colors.white, fontSize: 16),

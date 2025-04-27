@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:water_reminder/src/pages/login/login_page.dart';
+import 'package:water_reminder/src/pages/main/home_page.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:water_reminder/src/pages/root_page.dart';
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         primarySwatch: Colors.blue,
       ),
-      home: LoginPage(),
+      home: RootPage(),
       debugShowCheckedModeBanner: false,
     );
   }
