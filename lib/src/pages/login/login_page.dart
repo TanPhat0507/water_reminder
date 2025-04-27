@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../service/authentication_service.dart';
+import '../onboard/gender_page.dart';
+import '../onboard/weight_page.dart';
+import '../main/home_page.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -155,11 +160,12 @@ class _LoginPageState extends State<LoginPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
         onPressed: () async {
-          await AuthService().login(
-            email: widget._emailController.text,
-            password: widget._passwordController.text,
-            context: context,
-          );
+          // await AuthService().login(
+          //   email: widget._emailController.text,
+          //   password: widget._passwordController.text,
+          //   context: context,
+          // );
+          await _login(); //kiểm tra xem đã có thông tin người dùng hay chưa
         },
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -173,6 +179,56 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _login() async {
+    try {
+      String email = widget._emailController.text;
+      String password = widget._passwordController.text;
+
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      await _checkUserInfo(userCredential.user);
+    } catch (e) {
+      print('Login failed: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Login failed: $e')));
+    }
+  }
+
+  Future<void> _checkUserInfo(User? user) async {
+    if (user == null) return;
+
+    DocumentSnapshot userDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+    if (userDoc.exists) {
+      var data = userDoc.data() as Map<String, dynamic>;
+
+      if (data.containsKey('gender') && data.containsKey('weight')) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      } else {
+        // Nếu thiếu thông tin, yêu cầu nhập giới tính và cân nặng
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const GenderPage()),
+        );
+      }
+    } else {
+      // Nếu không có dữ liệu người dùng trong Firestore, yêu cầu nhập thông tin
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const GenderPage()),
+      );
+    }
   }
 
   Widget signupTextLink(BuildContext context) {

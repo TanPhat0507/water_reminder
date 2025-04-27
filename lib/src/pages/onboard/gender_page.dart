@@ -131,7 +131,9 @@ class _GenderPageState extends State<GenderPage> {
           onPressed: () async {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => WeightPage()),
+              MaterialPageRoute(
+                builder: (context) => WeightPage(gender: selectedGender!),
+              ),
             );
           },
           child: const Text(
