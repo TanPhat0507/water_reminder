@@ -59,7 +59,9 @@ class _HomePageState extends State<HomePage> {
         final data = doc.data();
         setState(() {
           _goalIntake = (data?['dailyWaterTarget'] ?? 2000).toDouble();
-          _currentIntake = 0;
+          _currentIntake =
+              (data?['todayIntake'] ?? 0)
+                  .toDouble(); //load lượng nước đã uống trong ngày
           _isLoading = false;
         });
       } else {
@@ -72,6 +74,28 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Future<void> updateTodayIntake(int amount) async {
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user == null) return;
+
+  //   final userDoc = FirebaseFirestore.instance
+  //       .collection('users')
+  //       .doc(user.uid);
+
+  //   await FirebaseFirestore.instance.runTransaction((transaction) async {
+  //     final snapshot = await transaction.get(userDoc);
+
+  //     if (!snapshot.exists) return;
+
+  //     final data = snapshot.data() as Map<String, dynamic>;
+  //     final currentIntake = (data['todayIntake'] ?? 0) as int;
+
+  //     transaction.update(userDoc, {
+  //       'todayIntake': currentIntake + amount,
+  //       'lastUpdatedDate': FieldValue.serverTimestamp(), // update timestamp
+  //     });
+  //   });
+  // }
   Future<void> updateTodayIntake(int amount) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -80,18 +104,9 @@ class _HomePageState extends State<HomePage> {
         .collection('users')
         .doc(user.uid);
 
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final snapshot = await transaction.get(userDoc);
-
-      if (!snapshot.exists) return;
-
-      final data = snapshot.data() as Map<String, dynamic>;
-      final currentIntake = (data['todayIntake'] ?? 0) as int;
-
-      transaction.update(userDoc, {
-        'todayIntake': currentIntake + amount,
-        'lastUpdatedDate': FieldValue.serverTimestamp(), // update timestamp
-      });
+    await userDoc.update({
+      'todayIntake': FieldValue.increment(amount),
+      'lastUpdatedDate': FieldValue.serverTimestamp(),
     });
   }
 
@@ -180,6 +195,7 @@ class _HomePageState extends State<HomePage> {
       _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
     });
     saveDrinkHistory(amount);
+    updateTodayIntake(amount);
   }
 
   Future<void> checkAndResetIntake() async {
