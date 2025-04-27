@@ -32,6 +32,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _fetchUserData();
     checkAndResetIntake();
+    fetchDrinkHistory();
     // _screens = [
     //   Center(child: Text('Report Page')),
     //   Center(
@@ -107,6 +108,40 @@ class _HomePageState extends State<HomePage> {
     await userDoc.update({
       'todayIntake': FieldValue.increment(amount),
       'lastUpdatedDate': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // load 4 lần uống gần nhất
+  Future<void> fetchDrinkHistory() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('drink_history')
+            .orderBy('timestamp', descending: true)
+            .limit(4)
+            .get();
+
+    final historyData =
+        snapshot.docs.map((doc) {
+          final data = doc.data();
+          final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+          final formattedTime =
+              timestamp != null
+                  ? TimeOfDay.fromDateTime(timestamp).format(context)
+                  : TimeOfDay.now().format(
+                    context,
+                  ); // Nếu null thì lấy giờ hiện tại
+
+          return {'time': formattedTime, 'amount': data['amount']};
+        }).toList();
+
+    setState(() {
+      _history.clear();
+      _history.addAll(historyData);
     });
   }
 
@@ -196,6 +231,7 @@ class _HomePageState extends State<HomePage> {
     });
     saveDrinkHistory(amount);
     updateTodayIntake(amount);
+    fetchDrinkHistory();
   }
 
   Future<void> checkAndResetIntake() async {
@@ -448,108 +484,110 @@ class _HomePageContentState extends State<HomePageContent> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Choose water amount',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 20,
-                children:
-                    [100, 200, 300, 400].asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final amount = entry.value;
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Choose water amount',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 20,
+                  children:
+                      [100, 200, 300, 400].asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final amount = entry.value;
 
-                      return GestureDetector(
-                        onTapDown: (_) {
-                          setState(() {
-                            _selectedDropIndex =
-                                index; // Lưu chỉ số giọt nước đang nhấn
-                          });
-                        },
-                        onTapUp: (_) {
-                          setState(() {
-                            _selectedDropIndex = null; // Reset về bình thường
-                          });
-                          Navigator.pop(context);
-                          _onSelected(amount);
-                        },
-                        onTapCancel: () {
-                          setState(() {
-                            _selectedDropIndex = null;
-                          });
-                        },
-                        child: AnimatedScale(
-                          scale: _selectedDropIndex == index ? 1.2 : 1.0,
-                          duration: Duration(milliseconds: 150),
-                          curve: Curves.easeOutBack,
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.water_drop,
-                                size: 40,
-                                color: Colors.blue,
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                '$amount ml',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ],
+                        return GestureDetector(
+                          onTapDown: (_) {
+                            setState(() {
+                              _selectedDropIndex =
+                                  index; // Lưu chỉ số giọt nước đang nhấn
+                            });
+                          },
+                          onTapUp: (_) {
+                            setState(() {
+                              _selectedDropIndex = null; // Reset về bình thường
+                            });
+                            Navigator.pop(context);
+                            _onSelected(amount);
+                          },
+                          onTapCancel: () {
+                            setState(() {
+                              _selectedDropIndex = null;
+                            });
+                          },
+                          child: AnimatedScale(
+                            scale: _selectedDropIndex == index ? 2.0 : 1.0,
+                            duration: Duration(milliseconds: 200),
+                            curve: Curves.easeOutBack,
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.water_drop,
+                                  size: 40,
+                                  color: Colors.blue,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  '$amount ml',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }).toList(),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Or',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
+                        );
+                      }).toList(),
                 ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _waterAmountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Enter custom amount (ml)',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  // Chắc chắn giá trị nhập vào là số
-                  setState(() {
-                    _customAmount = double.tryParse(value) ?? 0.0;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  if (_customAmount > 0) {
-                    Navigator.pop(context);
-                    _onSelected(_customAmount.toInt());
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF19A7CE),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                const SizedBox(height: 20),
+                Text(
+                  'Or',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
                   ),
                 ),
-                child: Text(
-                  "Add Custom Amount",
-                  style: TextStyle(color: Colors.white),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _waterAmountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Enter custom amount (ml)',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    // Chắc chắn giá trị nhập vào là số
+                    setState(() {
+                      _customAmount = double.tryParse(value) ?? 0.0;
+                    });
+                  },
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_customAmount > 0) {
+                      Navigator.pop(context);
+                      _onSelected(_customAmount.toInt());
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF19A7CE),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: Text(
+                    "Add Custom Amount",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -560,7 +598,82 @@ class _HomePageContentState extends State<HomePageContent> {
     widget.onAddWater(amount);
   }
 
-  // === History Section ===
+  // // === History Section ===
+  // Widget buildHistorySection(List<Map<String, dynamic>> history) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Padding(
+  //         padding: const EdgeInsets.symmetric(horizontal: 16),
+  //         child: Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             Text(
+  //               'History',
+  //               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  //             ),
+  //             TextButton(
+  //               onPressed: () {},
+  //               child: Text(
+  //                 'View all →',
+  //                 style: TextStyle(fontSize: 18, color: Color(0xFF19A7CE)),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //       SizedBox(height: 8),
+  //       Divider(
+  //         color: Colors.grey.withOpacity(0.3),
+  //         thickness: 2,
+  //         indent: 16,
+  //         endIndent: 16,
+  //       ),
+  //       SizedBox(height: 10),
+  //       Container(
+  //         height: 130,
+  //         child: ListView.builder(
+  //           scrollDirection: Axis.horizontal,
+  //           itemCount: history.length,
+  //           itemBuilder: (context, index) {
+  //             return Padding(
+  //               padding: const EdgeInsets.symmetric(horizontal: 10.0),
+  //               child: Column(
+  //                 children: [
+  //                   Container(
+  //                     width: 80,
+  //                     height: 80,
+  //                     decoration: BoxDecoration(
+  //                       shape: BoxShape.circle,
+  //                       image: DecorationImage(
+  //                         image: AssetImage("assets/glass.png"),
+  //                         fit: BoxFit.cover,
+  //                       ),
+  //                     ),
+  //                   ),
+  //                   SizedBox(height: 4),
+
+  //                   Text(
+  //                     '${history[index]['time']}',
+  //                     style: TextStyle(fontSize: 12),
+  //                   ),
+  //                   Text(
+  //                     '${history[index]['amount']} ml',
+  //                     style: TextStyle(
+  //                       fontSize: 14,
+  //                       fontWeight: FontWeight.bold,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             );
+  //           },
+  //         ),
+  //       ),
+  //       SizedBox(height: 10),
+  //     ],
+  //   );
+  // }
   Widget buildHistorySection(List<Map<String, dynamic>> history) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,7 +688,9 @@ class _HomePageContentState extends State<HomePageContent> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  // TODO: Implement view all page if needed
+                },
                 child: Text(
                   'View all →',
                   style: TextStyle(fontSize: 18, color: Color(0xFF19A7CE)),
@@ -594,43 +709,46 @@ class _HomePageContentState extends State<HomePageContent> {
         SizedBox(height: 10),
         Container(
           height: 130,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: history.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        image: DecorationImage(
-                          image: AssetImage("assets/glass.png"),
-                          fit: BoxFit.cover,
+          child:
+              history.isEmpty
+                  ? Center(child: Text('No drinking history today'))
+                  : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: history.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                image: DecorationImage(
+                                  image: AssetImage("assets/glass.png"),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '${history[index]['time']}',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            Text(
+                              '${history[index]['amount']} ml',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 4),
-
-                    Text(
-                      '${history[index]['time']}',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      '${history[index]['amount']} ml',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+                      );
+                    },
+                  ),
         ),
         SizedBox(height: 10),
       ],
