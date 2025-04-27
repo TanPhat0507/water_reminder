@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -9,6 +12,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 1;
+  double _currentIntake = 0; // Lượng nước đã uống trong ngày
+  double _goalIntake = 2000; // Mục tiêu uống nước (ml)
+  bool _isLoading = true;
+  double _scale = 1.0;
+  double _customAmount = 0.0;
+  double _previousProgress = 0.0;
+
   double _currentIntake = 1200; // Lượng nước đã uống
   double _goalIntake = 1200; // Mục tiêu uống nước
   double _customAmount = 0.0;
@@ -17,6 +27,7 @@ class _HomePageState extends State<HomePage> {
 
   bool _isButtonPressed = false;
 
+  final List<Map<String, dynamic>> _history = []; //lưu lịch sử uống nước
   final List<Map<String, dynamic>> _history = [
     {'time': '9:00', 'amount': 300},
     {'time': '10:00', 'amount': 500},
@@ -29,6 +40,65 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _fetchUserData();
+    // _screens = [
+    //   Center(child: Text('Report Page')),
+    //   Center(
+    //     child: HomePageContent(
+    //       onAddWater: _addWater,
+    //       currentIntake: _currentIntake,
+    //       goalIntake: _goalIntake,
+    //       history: _history,
+    //       previousProgress: _previousProgress,
+    //     ),
+    //   ),
+    //   Center(child: Text('Settings')),
+    // ];
+  }
+
+  Future<void> _fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      if (doc.exists) {
+        final data = doc.data();
+        setState(() {
+          _goalIntake = (data?['dailyWaterTarget'] ?? 2000).toDouble();
+          _currentIntake = 0;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _goalIntake = 2000;
+          _currentIntake = 0;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    _screens = [
+      Center(child: Text('Report Page')),
+      HomePageContent(
+        currentIntake: _currentIntake,
+        goalIntake: _goalIntake,
+        history: _history,
+        previousProgress: _previousProgress,
+        onAddWater: _addWater,
+      ),
+      Center(child: Text('Settings')),
+    ];
+
     _screens = [
       Center(child: Text('Report Page')),
       Center(
@@ -88,18 +158,33 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
+
+  void _addWater(int amount) {
+    setState(() {
+      _previousProgress = (_currentIntake / _goalIntake).clamp(
+        0.0,
+        1.0,
+      ); // Ghi nhớ progress cũ
+      _currentIntake += amount;
+      _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
+    });
+  }
 }
 
 class HomePageContent extends StatefulWidget {
   final double currentIntake;
   final double goalIntake;
   final List<Map<String, dynamic>> history;
+  final double previousProgress;
+  final Function(int) onAddWater;
 
   const HomePageContent({
     Key? key,
     required this.currentIntake,
     required this.goalIntake,
     required this.history,
+    required this.onAddWater,
+    required this.previousProgress,
   }) : super(key: key);
 
   @override
@@ -107,6 +192,12 @@ class HomePageContent extends StatefulWidget {
 }
 
 class _HomePageContentState extends State<HomePageContent> {
+  // late double _currentIntake;
+  // late double _goalIntake;
+  double _customAmount = 0.0;
+  int? _selectedDropIndex;
+  TextEditingController _waterAmountController = TextEditingController();
+  double _scale = 1.0;
   late double _currentIntake;
   late double _goalIntake;
   bool _isButtonPressed = false;
@@ -116,6 +207,8 @@ class _HomePageContentState extends State<HomePageContent> {
   @override
   void initState() {
     super.initState();
+    // _currentIntake = widget.currentIntake;
+    // _goalIntake = widget.goalIntake;
     _currentIntake = widget.currentIntake;
     _goalIntake = widget.goalIntake;
   }
@@ -139,6 +232,21 @@ class _HomePageContentState extends State<HomePageContent> {
 
   // === Progress Circle Section ===
   Widget buildProgressCircle(double size) {
+    double currentProgress = (widget.currentIntake / widget.goalIntake).clamp(
+      0.0,
+      1.0,
+    );
+
+    return Center(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(
+          begin: widget.previousProgress,
+          end: currentProgress,
+        ),
+        duration: Duration(milliseconds: 800),
+        builder: (context, value, child) {
+          double safeValue = value.clamp(0.0, 1.0);
+          double currentMl = (safeValue * widget.goalIntake).toDouble();
     return Center(
       child: TweenAnimationBuilder(
         tween: Tween(begin: 0.0, end: 1.0),
@@ -152,10 +260,32 @@ class _HomePageContentState extends State<HomePageContent> {
             child: Stack(
               alignment: Alignment.center,
               children: [
+                Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.transparent,
+                    border: Border.all(
+                      color: Colors.grey.withOpacity(0.3),
+                      width: 18,
+                    ),
+                  ),
+                ),
+
                 ShaderMask(
                   shaderCallback: (rect) {
                     return SweepGradient(
                       startAngle: 0.0,
+                      endAngle: 3.14 * 2, //xoay 360
+                      center: Alignment.center,
+                      stops: [0.0, safeValue, safeValue, 1.0],
+                      colors: [
+                        Color(0xFF19A7CE),
+                        Color(0xFF19A7CE),
+                        Colors.transparent,
+                        Colors.transparent,
+                      ],
                       endAngle: 3.14 * 2,
                       stops: [value, value],
                       center: Alignment.center,
@@ -168,6 +298,14 @@ class _HomePageContentState extends State<HomePageContent> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white,
+                      // boxShadow: [
+                      //   BoxShadow(
+                      //     color: Colors.grey.withOpacity(0.3),
+                      //     spreadRadius: 3,
+                      //     blurRadius: 5,
+                      //     offset: Offset(0, 4),
+                      //   ),
+                      // ],
                       boxShadow: [
                         BoxShadow(
                           color: Colors.grey.withOpacity(0.3),
@@ -192,6 +330,7 @@ class _HomePageContentState extends State<HomePageContent> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
+                          "${currentMl.toInt()} ml",
                           "$_currentIntake ml",
                           style: TextStyle(
                             fontSize: 30,
@@ -200,6 +339,7 @@ class _HomePageContentState extends State<HomePageContent> {
                           ),
                         ),
                         Text(
+                          "/${widget.goalIntake.toInt()} ml",
                           "/$_goalIntake ml",
                           style: TextStyle(fontSize: 20, color: Colors.grey),
                         ),
@@ -216,11 +356,13 @@ class _HomePageContentState extends State<HomePageContent> {
                     child: GestureDetector(
                       onTapDown: (_) {
                         setState(() {
+                          _scale = 1.2;
                           _scale = 1.2; // Phóng to khi bấm
                         });
                       },
                       onTapUp: (_) {
                         setState(() {
+                          _scale = 1.0;
                           _scale = 1.0; // Trở lại bình thường
                         });
                         _showAddWaterDialog();
@@ -382,6 +524,9 @@ class _HomePageContentState extends State<HomePageContent> {
   }
 
   void _onSelected(int amount) {
+    widget.onAddWater(amount);
+  }
+
     setState(() {
       _currentIntake += amount;
     });
