@@ -31,6 +31,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _fetchUserData();
+    checkAndResetIntake();
     // _screens = [
     //   Center(child: Text('Report Page')),
     //   Center(
@@ -69,6 +70,29 @@ class _HomePageState extends State<HomePage> {
         });
       }
     }
+  }
+
+  Future<void> updateTodayIntake(int amount) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final userDoc = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid);
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userDoc);
+
+      if (!snapshot.exists) return;
+
+      final data = snapshot.data() as Map<String, dynamic>;
+      final currentIntake = (data['todayIntake'] ?? 0) as int;
+
+      transaction.update(userDoc, {
+        'todayIntake': currentIntake + amount,
+        'lastUpdatedDate': FieldValue.serverTimestamp(), // update timestamp
+      });
+    });
   }
 
   @override
@@ -134,6 +158,18 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  //Lưu lượng nước + thời gian uống
+  Future<void> saveDrinkHistory(int amount) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('drink_history')
+        .add({'amount': amount, 'timestamp': FieldValue.serverTimestamp()});
+  }
+
   void _addWater(int amount) {
     setState(() {
       _previousProgress = (_currentIntake / _goalIntake).clamp(
@@ -143,6 +179,43 @@ class _HomePageState extends State<HomePage> {
       _currentIntake += amount;
       _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
     });
+    saveDrinkHistory(amount);
+  }
+
+  Future<void> checkAndResetIntake() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final userDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+    if (!userDoc.exists) return;
+
+    final data = userDoc.data()!;
+    DateTime? lastUpdatedDate;
+    if (data['lastUpdatedDate'] != null) {
+      lastUpdatedDate = (data['lastUpdatedDate'] as Timestamp).toDate();
+    }
+
+    DateTime today = DateTime.now();
+
+    if (lastUpdatedDate == null ||
+        lastUpdatedDate.year != today.year ||
+        lastUpdatedDate.month != today.month ||
+        lastUpdatedDate.day != today.day) {
+      // Nếu ngày khác hôm nay => reset
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {'todayIntake': 0, 'lastUpdatedDate': FieldValue.serverTimestamp()},
+      );
+
+      setState(() {
+        _currentIntake = 0;
+        _history.clear(); // Nếu bạn cũng muốn clear lịch sử hôm nay
+      });
+    }
   }
 }
 
