@@ -4,6 +4,7 @@ import 'package:water_reminder/src/pages/main/home_page.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:water_reminder/src/pages/root_page.dart';
+import 'package:water_reminder/src/pages/main/setting_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         primarySwatch: Colors.blue,
       ),
-      home: RootPage(),
+      home: SettingsScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
