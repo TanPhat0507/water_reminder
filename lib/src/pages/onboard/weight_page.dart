@@ -3,9 +3,13 @@ import 'package:flutter/cupertino.dart';
 import '../main/history_page.dart';
 
 import '../main/home_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class WeightPage extends StatefulWidget {
-  const WeightPage({super.key});
+  const WeightPage({super.key, required this.gender});
+
+  final String gender;
 
   @override
   State<WeightPage> createState() => _WeightPageState();
@@ -124,6 +128,14 @@ class _WeightPageState extends State<WeightPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           onPressed: () async {
+            if (selectedWeight == null) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("Please select a weight")));
+              return;
+            }
+
+            await saveUserInfoToFirestore();
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => HistoryPage()),
@@ -136,5 +148,36 @@ class _WeightPageState extends State<WeightPage> {
         ),
       ),
     );
+  }
+
+  //tính lượng nước cần uống dựa trên giới tính và cân nặng
+  int calculateDailyWaterTarget(String gender, int weight) {
+    if (gender == 'male') {
+      return (weight * 37);
+    } else {
+      return (weight * 32);
+    }
+  }
+
+  // Lưu thông tin người dùng vào Firestore
+  Future<void> saveUserInfoToFirestore() async {
+    final User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    String uid = user.uid;
+
+    int dailyWaterTarget = calculateDailyWaterTarget(
+      widget.gender,
+      selectedWeight!,
+    );
+
+    await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      'gender': widget.gender,
+      'weight': selectedWeight,
+      'dailyWaterTarget': dailyWaterTarget,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 }
