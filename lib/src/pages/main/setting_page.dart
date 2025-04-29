@@ -67,27 +67,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'Gender',
               value: gender,
               onTap: () async {
-                await Navigator.push(
+                final result = await Navigator.push<String>(
                   context,
-                  MaterialPageRoute(builder: (context) => const GenderPage()),
+                  MaterialPageRoute(
+                    builder: (context) => GenderPage(initialGender: gender),
+                  ),
                 );
 
-                final user = FirebaseAuth.instance.currentUser;
-                if (user != null) {
-                  final doc =
-                      await FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(user.uid)
-                          .get();
+                if (result != null) {
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .update({'gender': result});
 
-                  if (doc.exists) {
-                    final data = doc.data();
                     setState(() {
-                      gender = data?['gender'] ?? gender;
+                      gender = result;
                     });
                   }
+
+                  widget.onRefresh();
                 }
-                widget.onRefresh(); // Cập nhật lại HomePage
               },
             ),
             settingItem(

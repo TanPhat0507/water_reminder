@@ -136,16 +136,22 @@ class _GenderPageState extends State<GenderPage> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          onPressed: () async {
+          onPressed: () {
             if (selectedGender != null) {
-              Navigator.pop(context, selectedGender); // Trả lại giá trị
+              if (Navigator.of(context).canPop()) {
+                Navigator.pop(
+                  context,
+                  selectedGender,
+                ); // Trả về giá trị cho Settings
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WeightPage(gender: selectedGender!),
+                  ),
+                );
+              }
             }
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => WeightPage(gender: selectedGender!),
-              ),
-            );
           },
           child: const Text(
             "NEXT",
