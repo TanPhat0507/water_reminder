@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         primarySwatch: Colors.blue,
       ),
-      home: SettingsScreen(),
+      home: RootPage(),
       debugShowCheckedModeBanner: false,
     );
   }

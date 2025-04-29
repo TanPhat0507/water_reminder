@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:water_reminder/src/pages/onboard/weight_page.dart';
 
 class GenderPage extends StatefulWidget {
-  const GenderPage({super.key});
+  final String? initialGender;
+
+  const GenderPage({super.key, this.initialGender});
 
   @override
   State<GenderPage> createState() => _GenderPageState();
@@ -10,6 +12,12 @@ class GenderPage extends StatefulWidget {
 
 class _GenderPageState extends State<GenderPage> {
   String? selectedGender;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedGender = widget.initialGender;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +137,9 @@ class _GenderPageState extends State<GenderPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           onPressed: () async {
+            if (selectedGender != null) {
+              Navigator.pop(context, selectedGender); // Trả lại giá trị
+            }
             Navigator.push(
               context,
               MaterialPageRoute(

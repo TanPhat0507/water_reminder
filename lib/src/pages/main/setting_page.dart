@@ -1,119 +1,39 @@
-// import 'package:flutter/material.dart';
-
-// class SettingsScreen extends StatelessWidget {
-//   const SettingsScreen({Key? key}) : super(key: key);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Color(0xffF1F2F7),
-//       appBar: AppBar(
-//         backgroundColor: Colors.white,
-//         elevation: 0,
-//         title: Text(
-//           'More',
-//           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-//         ),
-//         centerTitle: true,
-//         iconTheme: IconThemeData(color: Colors.black),
-//       ),
-//       body: SingleChildScrollView(
-//         padding: const EdgeInsets.all(16),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             // Settings Options
-//             Text(
-//               "Setting",
-//               style: TextStyle(
-//                 fontSize: 18,
-//                 fontWeight: FontWeight.bold,
-//                 color: Color(0xff212C42),
-//               ),
-//             ),
-//             const SizedBox(height: 10),
-
-//             supportTile(icon: Icons.help_outline, title: "Water Reminder"),
-
-//             Text(
-//               "General",
-//               style: TextStyle(
-//                 fontSize: 18,
-//                 fontWeight: FontWeight.bold,
-//                 color: Color(0xff212C42),
-//               ),
-//             ),
-//             const SizedBox(height: 10),
-
-//             settingTile(icon: Icons.notifications, title: "Goal"),
-
-//             const SizedBox(height: 30),
-
-//             Text(
-//               "Personal Info",
-//               style: TextStyle(
-//                 fontSize: 18,
-//                 fontWeight: FontWeight.bold,
-//                 color: Color(0xff212C42),
-//               ),
-//             ),
-//             const SizedBox(height: 10),
-
-//             supportTile(icon: Icons.help_outline, title: "Gender"),
-//             supportTile(icon: Icons.mail_outline, title: "Weight"),
-//             supportTile(icon: Icons.info_outline, title: "About App"),
-
-//             Text(
-//               "App",
-//               style: TextStyle(
-//                 fontSize: 18,
-//                 fontWeight: FontWeight.bold,
-//                 color: Color(0xff212C42),
-//               ),
-//             ),
-//             const SizedBox(height: 10),
-
-//             supportTile(icon: Icons.help_outline, title: "Give feedback"),
-//             supportTile(icon: Icons.mail_outline, title: "Terms of use"),
-//             supportTile(icon: Icons.info_outline, title: "Log out"),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-
-//   // Setting Item Widget
-//   Widget settingTile({required IconData icon, required String title}) {
-//     return Card(
-//       color: Color(0xffEDEFFE),
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-//       child: ListTile(
-//         leading: Icon(icon, color: Color(0xff9CA2FF)),
-//         title: Text(title),
-//         trailing: Icon(Icons.arrow_forward_ios, size: 16),
-//         onTap: () {},
-//       ),
-//     );
-//   }
-
-//   // Support Item Widget
-//   Widget supportTile({required IconData icon, required String title}) {
-//     return Card(
-//       color: Colors.white,
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-//       child: ListTile(
-//         leading: Icon(icon, color: Color(0xff212C42)),
-//         title: Text(title),
-//         trailing: Icon(Icons.arrow_forward_ios, size: 16),
-//         onTap: () {},
-//       ),
-//     );
-//   }
-// }
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../onboard/gender_page.dart';
+import '../onboard/weight_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+class SettingsScreen extends StatefulWidget {
+  final String gender;
+  final String weight;
+  final String goalIntake;
+  final VoidCallback onRefresh;
+
+  const SettingsScreen({
+    Key? key,
+    required this.gender,
+    required this.weight,
+    required this.goalIntake,
+    required this.onRefresh,
+  }) : super(key: key);
+
+  @override
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late String gender;
+  late String weight;
+  late String goalIntake;
+
+  @override
+  void initState() {
+    super.initState();
+    gender = widget.gender;
+    weight = widget.weight;
+    goalIntake = widget.goalIntake;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -138,14 +58,60 @@ class SettingsScreen extends StatelessWidget {
             settingItem(icon: Icons.notifications, title: 'Water reminders'),
 
             sectionTitle('General'),
-            settingItem(icon: Icons.flag, title: 'Goal', value: '1200ml'),
+            settingItem(icon: Icons.flag, title: 'Goal', value: goalIntake),
 
             sectionTitle('Personal info'),
-            settingItem(icon: Icons.male, title: 'Gender', value: 'Male'),
+            settingItem(
+              icon: Icons.male,
+              title: 'Gender',
+              value: gender,
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const GenderPage()),
+                );
+                // Fetch dữ liệu mới
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  final doc =
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .get();
+                  setState(() {
+                    gender = doc['gender'] ?? gender;
+                  });
+                }
+
+                widget.onRefresh(); // Cập nhật lại HomePage
+              },
+            ),
             settingItem(
               icon: Icons.monitor_weight,
               title: 'Weight',
-              value: '52kg',
+              value: weight,
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WeightPage(gender: gender),
+                  ),
+                );
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  final doc =
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .get();
+                  setState(() {
+                    weight = doc['weight'].toString();
+                    goalIntake = doc['dailyWaterTarget'].toString();
+                  });
+                }
+
+                widget.onRefresh(); // Cập nhật lại HomePage
+              },
             ),
 
             sectionTitle('App'),
@@ -158,17 +124,6 @@ class SettingsScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 2,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.opacity), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
-        ],
-      ),
     );
   }
 
@@ -180,7 +135,7 @@ class SettingsScreen extends StatelessWidget {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.black54,
+          color: Color(0xFF808080),
         ),
       ),
     );
@@ -190,29 +145,69 @@ class SettingsScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     String? value,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        border: Border.all(color: Color(0xff19A7CE), width: 1),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: Colors.black54),
-        title: Text(title),
-        trailing:
-            value != null
-                ? Text(
-                  value,
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 50,
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Color(0xff19A7CE), width: 1),
+          borderRadius: BorderRadius.circular(10),
+          color: Colors.white,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.black54, size: 20),
+            SizedBox(width: 12),
+            Expanded(child: Text(title, style: TextStyle(fontSize: 14))),
+            if (value != null)
+              Row(
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                )
-                : Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-        onTap: () {},
+                  SizedBox(width: 6),
+                  Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                ],
+              )
+            else
+              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
+
+  int calculateDailyWaterTarget(String gender, int weight) {
+    if (gender == 'male') {
+      return weight * 37;
+    } else {
+      return weight * 32;
+    }
+  }
+
+  // Future<void> onRefresh() async {
+  //   // Add logic to refresh data here, e.g., fetch updated data from a database
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user != null) {
+  //     final doc =
+  //         await FirebaseFirestore.instance
+  //             .collection('users')
+  //             .doc(user.uid)
+  //             .get();
+  //     setState(() {
+  //       gender = doc['gender'] ?? gender;
+  //       weight = doc['weight'] ?? weight;
+  //       goalIntake = doc['goalIntake'] ?? goalIntake;
+  //     });
+  //   }
+  // }
 }

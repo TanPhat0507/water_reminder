@@ -5,7 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class WeightPage extends StatefulWidget {
-  const WeightPage({super.key, required this.gender});
+  final int? initialWeight;
+
+  const WeightPage({super.key, required this.gender, this.initialWeight});
 
   final String gender;
 
@@ -15,6 +17,12 @@ class WeightPage extends StatefulWidget {
 
 class _WeightPageState extends State<WeightPage> {
   int? selectedWeight;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedWeight = widget.initialWeight;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,10 +142,19 @@ class _WeightPageState extends State<WeightPage> {
             }
 
             await saveUserInfoToFirestore();
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()),
-            );
+
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context, selectedWeight);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => HomePage()),
+              );
+            }
+            // Navigator.push(
+            //   context,
+            //   MaterialPageRoute(builder: (context) => HomePage()),
+            // );
           },
           child: const Text(
             "NEXT",

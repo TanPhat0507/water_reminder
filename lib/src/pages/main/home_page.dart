@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:water_reminder/src/pages/main/setting_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +18,9 @@ class _HomePageState extends State<HomePage> {
   double _scale = 1.0;
   double _customAmount = 0.0;
   double _previousProgress = 0.0;
+
+  String userGender = '';
+  int userWeight = 0;
 
   // Lượng nước nhập tay
   TextEditingController _waterAmountController = TextEditingController();
@@ -48,6 +52,8 @@ class _HomePageState extends State<HomePage> {
     // ];
   }
 
+  String _gender = '';
+  String _weight = '';
   Future<void> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -60,9 +66,9 @@ class _HomePageState extends State<HomePage> {
         final data = doc.data();
         setState(() {
           _goalIntake = (data?['dailyWaterTarget'] ?? 2000).toDouble();
-          _currentIntake =
-              (data?['todayIntake'] ?? 0)
-                  .toDouble(); //load lượng nước đã uống trong ngày
+          _currentIntake = (data?['todayIntake'] ?? 0).toDouble();
+          userGender = data?['gender'] ?? '';
+          userWeight = data?['weight'] ?? 0;
           _isLoading = false;
         });
       } else {
@@ -75,28 +81,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Future<void> updateTodayIntake(int amount) async {
-  //   final user = FirebaseAuth.instance.currentUser;
-  //   if (user == null) return;
-
-  //   final userDoc = FirebaseFirestore.instance
-  //       .collection('users')
-  //       .doc(user.uid);
-
-  //   await FirebaseFirestore.instance.runTransaction((transaction) async {
-  //     final snapshot = await transaction.get(userDoc);
-
-  //     if (!snapshot.exists) return;
-
-  //     final data = snapshot.data() as Map<String, dynamic>;
-  //     final currentIntake = (data['todayIntake'] ?? 0) as int;
-
-  //     transaction.update(userDoc, {
-  //       'todayIntake': currentIntake + amount,
-  //       'lastUpdatedDate': FieldValue.serverTimestamp(), // update timestamp
-  //     });
-  //   });
-  // }
   Future<void> updateTodayIntake(int amount) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -122,27 +106,40 @@ class _HomePageState extends State<HomePage> {
             .doc(user.uid)
             .collection('drink_history')
             .orderBy('timestamp', descending: true)
-            .limit(4)
+            .limit(30)
             .get();
+    final today = DateTime.now();
 
     final historyData =
-        snapshot.docs.map((doc) {
-          final data = doc.data();
-          final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-          final formattedTime =
-              timestamp != null
-                  ? TimeOfDay.fromDateTime(timestamp).format(context)
-                  : TimeOfDay.now().format(
-                    context,
-                  ); // Nếu null thì lấy giờ hiện tại
+        snapshot.docs
+            .where((doc) {
+              final timestamp = (doc['timestamp'] as Timestamp?)?.toDate();
+              return timestamp != null &&
+                  timestamp.year == today.year &&
+                  timestamp.month == today.month &&
+                  timestamp.day == today.day;
+            })
+            .take(4) // lấy 4 cái mới nhất trong ngày hôm nay
+            .map((doc) {
+              final data = doc.data();
+              final timestamp = (data['timestamp'] as Timestamp).toDate();
+              final formattedTime = TimeOfDay.fromDateTime(
+                timestamp,
+              ).format(context);
 
-          return {'time': formattedTime, 'amount': data['amount']};
-        }).toList();
+              return {'time': formattedTime, 'amount': data['amount']};
+            })
+            .toList();
 
     setState(() {
       _history.clear();
       _history.addAll(historyData);
     });
+  }
+
+  Future<void> _handleRefresh() async {
+    await _fetchUserData(); // Gọi lại hàm fetch dữ liệu từ Firestore
+    setState(() {}); // Cập nhật lại UI
   }
 
   @override
@@ -160,7 +157,14 @@ class _HomePageState extends State<HomePage> {
         previousProgress: _previousProgress,
         onAddWater: _addWater,
       ),
-      Center(child: Text('Settings')),
+
+      SettingsScreen(
+        goalIntake: _goalIntake.toInt().toString(),
+        gender: userGender,
+        weight: userWeight.toString(),
+        onRefresh: _handleRefresh,
+      ),
+      //Center(child: Text('Settings')),
     ];
 
     return Scaffold(
@@ -169,8 +173,11 @@ class _HomePageState extends State<HomePage> {
         child: buildHeader(),
       ),
       body: Column(
+        //dùng indexedStack để giữ nguyên tab navigation khi chuyển qua trang khác
         children: [
-          Expanded(child: _screens[_currentIndex]),
+          Expanded(
+            child: IndexedStack(index: _currentIndex, children: _screens),
+          ),
           buildBottomNavigationBar(),
         ],
       ),
@@ -190,7 +197,10 @@ class _HomePageState extends State<HomePage> {
   Widget buildBottomNavigationBar() {
     return BottomNavigationBar(
       currentIndex: _currentIndex,
-      onTap: (index) {
+      onTap: (index) async {
+        if (index == 2) {
+          await _fetchUserData(); // load lại gender, weight
+        }
         setState(() {
           _currentIndex = index;
         });
