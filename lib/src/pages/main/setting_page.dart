@@ -120,10 +120,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             sectionTitle('App'),
-            settingItem(icon: Icons.feedback_outlined, title: 'Give feedback'),
+            settingItem(
+              icon: Icons.feedback_outlined,
+              title: 'Give feedback',
+              onTap: () => _showFeedbackDialog(context),
+            ),
             settingItem(
               icon: Icons.description_outlined,
               title: 'Terms of use',
+              onTap: () => _showTermsOfUseDialog(context),
             ),
             settingItem(
               icon: Icons.logout,
@@ -205,6 +210,156 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } else {
       return weight * 32;
     }
+  }
+
+  void _showFeedbackDialog(BuildContext context) {
+    final TextEditingController _feedbackController = TextEditingController();
+    int _rating = 0;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: const [
+                  Icon(Icons.feedback_outlined, color: Color(0xFF19A7CE)),
+                  SizedBox(width: 8),
+                  Text(
+                    "Send Feedback",
+                    style: TextStyle(color: Color(0xFF19A7CE)),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Rate your experience:"),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          Icons.star,
+                          color:
+                              index < _rating ? Colors.amber : Colors.grey[300],
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _rating = index + 1;
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _feedbackController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: "Write your feedback...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: const Text("Cancel"),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF19A7CE),
+                  ),
+                  child: const Text(
+                    "Submit",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onPressed: () async {
+                    final feedback = _feedbackController.text.trim();
+                    if (_rating > 0 || feedback.isNotEmpty) {
+                      final user = FirebaseAuth.instance.currentUser;
+                      await FirebaseFirestore.instance
+                          .collection('feedbacks')
+                          .add({
+                            'uid': user?.uid ?? 'anonymous',
+                            'email': user?.email ?? '',
+                            'rating': _rating,
+                            'message': feedback,
+                            'timestamp': FieldValue.serverTimestamp(),
+                          });
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Thank you for your feedback!")),
+                      );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showTermsOfUseDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.info_outline, color: Color(0xFF19A7CE)),
+              SizedBox(width: 8),
+              Text("Terms of Use", style: TextStyle(color: Color(0xFF19A7CE))),
+            ],
+          ),
+          content: Container(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Text(
+                '''
+By using MP Water Reminder, you agree to the following:
+
+• This app is a self-care support tool, not a medical device.
+• All hydration goals are suggestions, not professional advice.
+• We do not collect or share personal information without your consent.
+• You are responsible for setting goals appropriate to your body and health needs.
+• Usage data may be used to improve app features and performance.
+• We reserve the right to modify these terms at any time.
+
+If you disagree, please discontinue use.
+              ''',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Color(0xFF19A7CE)),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Close"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Future<void> onRefresh() async {
