@@ -18,6 +18,7 @@ class _HomePageState extends State<HomePage> {
   double _scale = 1.0;
   double _customAmount = 0.0;
   double _previousProgress = 0.0;
+  String userName = '';
 
   String userGender = '';
   int userWeight = 0;
@@ -69,8 +70,16 @@ class _HomePageState extends State<HomePage> {
           _currentIntake = (data?['todayIntake'] ?? 0).toDouble();
           userGender = data?['gender'] ?? '';
           userWeight = data?['weight'] ?? 0;
+          userName = data?['name'] ?? '';
           _isLoading = false;
         });
+
+        // Nếu chưa có tên, hiển thị hộp thoại nhập tên
+        if ((data?['name'] ?? '').toString().isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showNameDialog();
+          });
+        }
       } else {
         setState(() {
           _goalIntake = 2000;
@@ -142,6 +151,43 @@ class _HomePageState extends State<HomePage> {
     setState(() {}); // Cập nhật lại UI
   }
 
+  void _showNameDialog() {
+    final TextEditingController nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("What's your name?"),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(hintText: "Enter your name"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                String name = nameController.text.trim();
+                if (name.isNotEmpty) {
+                  final user = FirebaseAuth.instance.currentUser;
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user!.uid)
+                      .update({'name': name});
+                  setState(() {
+                    userName = name;
+                  });
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -168,10 +214,14 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(kToolbarHeight),
-        child: buildHeader(),
-      ),
+      appBar:
+          _currentIndex == 2
+              ? null
+              : PreferredSize(
+                preferredSize: Size.fromHeight(kToolbarHeight),
+                child: buildHeader(),
+              ),
+
       body: Column(
         //dùng indexedStack để giữ nguyên tab navigation khi chuyển qua trang khác
         children: [
@@ -187,7 +237,7 @@ class _HomePageState extends State<HomePage> {
   // === Header ===
   Widget buildHeader() {
     return AppBar(
-      title: Text('Hi, KieuMy', style: TextStyle(color: Colors.black)),
+      title: Text('Hi, $userName', style: TextStyle(color: Colors.black)),
       backgroundColor: Colors.white,
       elevation: 0,
     );

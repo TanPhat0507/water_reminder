@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../onboard/gender_page.dart';
 import '../onboard/weight_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:water_reminder/src/service/authentication_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String gender;
@@ -70,7 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   context,
                   MaterialPageRoute(builder: (context) => const GenderPage()),
                 );
-                // Fetch dữ liệu mới
+
                 final user = FirebaseAuth.instance.currentUser;
                 if (user != null) {
                   final doc =
@@ -78,11 +79,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           .collection('users')
                           .doc(user.uid)
                           .get();
-                  setState(() {
-                    gender = doc['gender'] ?? gender;
-                  });
-                }
 
+                  if (doc.exists) {
+                    final data = doc.data();
+                    setState(() {
+                      gender = data?['gender'] ?? gender;
+                    });
+                  }
+                }
                 widget.onRefresh(); // Cập nhật lại HomePage
               },
             ),
@@ -120,7 +124,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.description_outlined,
               title: 'Terms of use',
             ),
-            settingItem(icon: Icons.logout, title: 'Log out'),
+            settingItem(
+              icon: Icons.logout,
+              title: 'Log out',
+              onTap: () async {
+                await AuthService().signout(context: context);
+              },
+            ),
           ],
         ),
       ),
@@ -174,8 +184,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontSize: 14,
                     ),
                   ),
-                  SizedBox(width: 6),
-                  Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  if (title == 'Gender' || title == 'Weight') ...[
+                    SizedBox(width: 6),
+                    Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  ],
                 ],
               )
             else

@@ -18,7 +18,7 @@ class WelcomePage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Hello👋',
+                'Stay hydrated!\nDrinking enough water keeps you healthy and energized.',
                 style: GoogleFonts.raleway(
                   textStyle: const TextStyle(
                     color: Color(0xFF19A7CE),
