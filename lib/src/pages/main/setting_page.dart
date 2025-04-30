@@ -4,6 +4,7 @@ import '../onboard/gender_page.dart';
 import '../onboard/weight_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:water_reminder/src/service/authentication_service.dart';
+import '../../notification/remider_page.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String gender;
@@ -56,7 +57,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             sectionTitle('Setting'),
-            settingItem(icon: Icons.notifications, title: 'Water reminders'),
+            settingItem(
+              icon: Icons.notifications,
+              title: 'Water reminders',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ReminderPage()),
+                );
+              },
+            ),
 
             sectionTitle('General'),
             settingItem(icon: Icons.flag, title: 'Goal', value: goalIntake),
