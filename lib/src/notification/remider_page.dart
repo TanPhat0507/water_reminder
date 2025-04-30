@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'reminder_setting_page.dart';
-import '../models/reminder.dart' as models;
+import '../models/reminder.dart';
 
 class ReminderPage extends StatefulWidget {
   const ReminderPage({Key? key}) : super(key: key);
@@ -10,14 +12,68 @@ class ReminderPage extends StatefulWidget {
 }
 
 class _ReminderPageState extends State<ReminderPage> {
-  List<models.Reminder> reminders = [
-    models.Reminder(time: '06:00', days: 'Everyday', isEnabled: false),
-    models.Reminder(time: '22:00', days: 'Saturday'),
-    models.Reminder(
-      time: '23:00',
-      days: 'Saturday, Monday, Tuesday, Wednesday',
-    ),
-  ];
+  List<Reminder> reminders = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRemindersFromFirestore();
+  }
+
+  Future<void> _loadRemindersFromFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('reminders')
+            .orderBy('updatedAt', descending: true)
+            .get();
+
+    setState(() {
+      reminders =
+          snapshot.docs.map((doc) {
+            final data = doc.data();
+            return Reminder(
+              id: doc.id,
+              time: data['time'] ?? '00:00',
+              days: data['days'] ?? '',
+              isEnabled: data['isEnabled'] ?? true,
+            );
+          }).toList();
+      isLoading = false;
+    });
+  }
+
+  Future<void> _navigateToEdit(Reminder reminder) async {
+    final updated = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReminderSettingPage(reminder: reminder),
+      ),
+    );
+
+    if (updated != null && updated is Reminder) {
+      _loadRemindersFromFirestore(); // Refresh sau khi update
+    }
+  }
+
+  Future<void> _navigateToAddReminder() async {
+    final newReminder = Reminder(time: '08:00', days: '');
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReminderSettingPage(reminder: newReminder, isNew: true),
+      ),
+    );
+
+    if (result != null && result is Reminder) {
+      _loadRemindersFromFirestore(); // Refresh sau khi thêm
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,53 +91,31 @@ class _ReminderPageState extends State<ReminderPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Color(0xFF19A7CE)),
-            onPressed: () {
-              final newReminder = models.Reminder(
-                time: '08:00',
-                days: 'Monday',
-              );
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ReminderSettingPage(reminder: newReminder),
-                ),
-              ).then((result) {
-                if (result != null && result is models.Reminder) {
-                  setState(() {
-                    reminders.add(result);
-                  });
-                }
-              });
-            },
+            onPressed: _navigateToAddReminder,
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: reminders.map((r) => buildReminderItem(r)).toList(),
-        ),
-      ),
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child:
+                    reminders.isEmpty
+                        ? const Text('No reminders found.')
+                        : Column(
+                          children:
+                              reminders
+                                  .map((r) => buildReminderItem(r))
+                                  .toList(),
+                        ),
+              ),
     );
   }
 
-  Widget buildReminderItem(models.Reminder reminder) {
+  Widget buildReminderItem(Reminder reminder) {
     return InkWell(
-      onTap: () async {
-        final updatedReminder = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ReminderSettingPage(reminder: reminder),
-          ),
-        );
-
-        if (updatedReminder != null && updatedReminder is models.Reminder) {
-          setState(() {
-            int index = reminders.indexOf(reminder);
-            if (index != -1) reminders[index] = updatedReminder;
-          });
-        }
-      },
+      onTap: () => _navigateToEdit(reminder),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -116,15 +150,31 @@ class _ReminderPageState extends State<ReminderPage> {
                 reminder.isEnabled ? Icons.toggle_on : Icons.toggle_off,
                 color: reminder.isEnabled ? Colors.blue : Colors.grey,
               ),
-              onPressed: () {
-                setState(() {
-                  reminder.isEnabled = !reminder.isEnabled;
-                });
+              onPressed: () async {
+                await _toggleReminderStatus(reminder);
               },
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _toggleReminderStatus(Reminder reminder) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || reminder.id == null) return;
+
+    final newStatus = !reminder.isEnabled;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('reminders')
+        .doc(reminder.id!)
+        .update({'isEnabled': newStatus});
+
+    setState(() {
+      reminder.isEnabled = newStatus;
+    });
   }
 }

@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:water_reminder/src/pages/root_page.dart';
 import 'package:water_reminder/src/pages/main/setting_page.dart';
+import 'package:water_reminder/src/service/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.init(context);
+    });
     return MaterialApp(
       title: 'Water Reminder',
       theme: ThemeData(

@@ -1,23 +1,21 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/reminder.dart';
-
-// class Reminder {
-//   String time;
-//   String days;
-//   bool isEnabled;
-
-//   Reminder({required this.time, required this.days, this.isEnabled = true});
-// }
 
 class ReminderSettingPage extends StatefulWidget {
   final Reminder reminder;
+  final bool isNew;
 
-  const ReminderSettingPage({Key? key, required this.reminder})
-    : super(key: key);
+  const ReminderSettingPage({
+    Key? key,
+    required this.reminder,
+    this.isNew = false,
+  }) : super(key: key);
 
   @override
-  _ReminderSettingPageState createState() => _ReminderSettingPageState();
+  State<ReminderSettingPage> createState() => _ReminderSettingPageState();
 }
 
 class _ReminderSettingPageState extends State<ReminderSettingPage> {
@@ -28,18 +26,10 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
   @override
   void initState() {
     super.initState();
-    final timeParts = widget.reminder.time.split(':');
-    selectedHour = int.tryParse(timeParts[0]) ?? 0;
-    selectedMinute = int.tryParse(timeParts[1]) ?? 0;
+    final parts = widget.reminder.time.split(':');
+    selectedHour = int.tryParse(parts[0]) ?? 0;
+    selectedMinute = int.tryParse(parts[1]) ?? 0;
     selectedDays = widget.reminder.days.split(', ').toList();
-  }
-
-  @override
-  void dispose() {
-    widget.reminder.time =
-        '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}';
-    widget.reminder.days = selectedDays.join(', ');
-    super.dispose();
   }
 
   @override
@@ -61,8 +51,10 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
           const SizedBox(height: 20),
           buildTimePicker(),
           const SizedBox(height: 20),
-          buildRepeatButton(context),
+          buildRepeatButton(),
           const SizedBox(height: 40),
+          buildSaveButton(),
+          const SizedBox(height: 16),
           buildDeleteButton(),
         ],
       ),
@@ -107,7 +99,7 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
         itemExtent: 40,
         onSelectedItemChanged: onChanged,
         children: List.generate(max - min + 1, (index) {
-          int value = index + min;
+          final value = index + min;
           return Center(
             child: Text(
               value.toString().padLeft(2, '0'),
@@ -125,9 +117,9 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
     );
   }
 
-  Widget buildRepeatButton(BuildContext context) {
+  Widget buildRepeatButton() {
     return InkWell(
-      onTap: () => _showRepeatDialog(context),
+      onTap: () => _showRepeatDialog(),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 30),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -153,28 +145,45 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
     );
   }
 
+  Widget buildSaveButton() {
+    return ElevatedButton(
+      onPressed: () async {
+        widget.reminder.time =
+            '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}';
+        widget.reminder.days = selectedDays.join(', ');
+        widget.reminder.isEnabled = true;
+
+        await _saveReminderToFirestore(widget.reminder);
+        Navigator.pop(context, widget.reminder);
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF146C94),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+      ),
+      child: const Text("Save", style: TextStyle(color: Colors.white)),
+    );
+  }
+
   Widget buildDeleteButton() {
     return ElevatedButton(
-      onPressed: () {
-        Navigator.pop(context, null); // Hoặc bạn thêm logic xóa reminder ở đây
+      onPressed: () async {
+        await _deleteReminderFromFirestore(widget.reminder);
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Colors.blue),
+          side: const BorderSide(color: Colors.red),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       ),
-      child: const Text(
-        "Delete reminder",
-        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-      ),
+      child: const Text("Delete reminder", style: TextStyle(color: Colors.red)),
     );
   }
 
-  void _showRepeatDialog(BuildContext context) {
+  void _showRepeatDialog() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -214,7 +223,7 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
                                 selectedDays.add(day);
                               }
                             });
-                            setState(() {}); // Cập nhật UI trên trang chính
+                            setState(() {});
                           },
                         );
                       }).toList(),
@@ -223,5 +232,58 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
             },
           ),
     );
+  }
+
+  Future<void> _saveReminderToFirestore(Reminder reminder) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final remindersRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('reminders');
+
+    final reminderData = {
+      'time': reminder.time,
+      'days': reminder.days,
+      'isEnabled': reminder.isEnabled,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (reminder.id != null) {
+      // Update existing
+      await remindersRef.doc(reminder.id).update(reminderData);
+    } else {
+      // Create new
+      final newDoc = await remindersRef.add(reminderData);
+      reminder.id = newDoc.id;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Reminder saved successfully!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Future<void> _deleteReminderFromFirestore(Reminder reminder) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || reminder.id == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('reminders')
+        .doc(reminder.id)
+        .delete();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Reminder deleted.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    Navigator.pop(context, null); // Trả null để xóa khỏi danh sách ngoài
   }
 }
