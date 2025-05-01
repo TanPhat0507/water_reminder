@@ -58,15 +58,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // TextButton(
-            //   onPressed: () {
-            //     NotificationService.testOneMinuteNotification();
-            //   },
-            //   child: const Text(
-            //     "🔔 Test thông báo sau 1 phút",
-            //     style: TextStyle(color: Colors.blue),
-            //   ),
-            // ),
             sectionTitle('Setting'),
             settingItem(
               icon: Icons.notifications,
@@ -186,6 +177,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return InkWell(
       onTap: onTap,
+      splashColor: Colors.blue.withOpacity(0.1),
+      highlightColor: Colors.blue.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
         height: 50,
         margin: const EdgeInsets.only(bottom: 8),
@@ -197,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: Colors.black54, size: 20),
+            Icon(icon, color: Color(0xFF19A7CE), size: 20),
             SizedBox(width: 12),
             Expanded(child: Text(title, style: TextStyle(fontSize: 14))),
             if (value != null)

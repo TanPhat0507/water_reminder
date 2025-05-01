@@ -55,75 +55,6 @@ class NotificationService {
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
   }
 
-  // static Future<void> scheduleNotification({
-  //   required String reminderId,
-  //   required TimeOfDay time,
-  //   required List<String> days,
-  // }) async {
-  //   for (final day in days) {
-  //     final weekday = _weekdayStringToInt(day);
-  //     final int id = _generateNotificationId(reminderId, weekday);
-  //     final tz.TZDateTime scheduledTime = _nextInstanceOfWeekdayTime(
-  //       time,
-  //       weekday,
-  //     );
-  //     final String message = _getMessageByTime(time.hour);
-
-  //     await _notificationsPlugin.zonedSchedule(
-  //       id,
-  //       "💧 Time to Hydrate!",
-  //       message,
-  //       scheduledTime,
-  //       NotificationDetails(
-  //         android: AndroidNotificationDetails(
-  //           'water_channel',
-  //           'Water Reminders',
-  //           channelDescription: 'Reminders to drink water',
-  //           importance: Importance.max,
-  //           priority: Priority.high,
-  //         ),
-  //       ),
-  //       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-  //       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-  //     );
-  //   }
-  // }
-
-  // static Future<void> scheduleOneTimeNotification({
-  //   required String reminderId,
-  //   required TimeOfDay time,
-  // }) async {
-  //   final now = tz.TZDateTime.now(tz.local);
-  //   tz.TZDateTime scheduled = tz.TZDateTime(
-  //     tz.local,
-  //     now.year,
-  //     now.month,
-  //     now.day,
-  //     time.hour,
-  //     time.minute,
-  //   );
-
-  //   if (scheduled.isBefore(now)) {
-  //     scheduled = scheduled.add(const Duration(days: 1));
-  //   }
-
-  //   await _notificationsPlugin.zonedSchedule(
-  //     reminderId.hashCode,
-  //     "💧 Time to Hydrate!",
-  //     _getMessageByTime(time.hour),
-  //     scheduled,
-  //     const NotificationDetails(
-  //       android: AndroidNotificationDetails(
-  //         'water_channel',
-  //         'Water Reminders',
-  //         channelDescription: 'One-time water reminder',
-  //         importance: Importance.max,
-  //         priority: Priority.high,
-  //       ),
-  //     ),
-  //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-  //   );
-  // }
   static Future<void> scheduleAuto({
     required String reminderId,
     required TimeOfDay time,
@@ -156,9 +87,8 @@ class NotificationService {
             channelDescription: 'Reminders to drink water',
             importance: Importance.max,
             priority: Priority.high,
-            icon: 'water_icon',
-            //sound: RawResourceAndroidNotificationSound('notification_sound'),
-            //fullScreenIntent: true,
+            icon: 'water',
+            sound: RawResourceAndroidNotificationSound('water_sound'),
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

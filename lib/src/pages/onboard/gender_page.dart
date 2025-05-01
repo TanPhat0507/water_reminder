@@ -138,19 +138,12 @@ class _GenderPageState extends State<GenderPage> {
           ),
           onPressed: () {
             if (selectedGender != null) {
-              if (Navigator.of(context).canPop()) {
-                Navigator.pop(
-                  context,
-                  selectedGender,
-                ); // Trả về giá trị cho Settings
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => WeightPage(gender: selectedGender!),
-                  ),
-                );
-              }
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => WeightPage(gender: selectedGender!),
+                ),
+              );
             }
           },
           child: const Text(

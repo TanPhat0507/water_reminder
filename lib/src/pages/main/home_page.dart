@@ -40,19 +40,6 @@ class _HomePageState extends State<HomePage> {
     _fetchUserData();
     checkAndResetIntake();
     fetchDrinkHistory();
-    // _screens = [
-    //   Center(child: Text('Report Page')),
-    //   Center(
-    //     child: HomePageContent(
-    //       onAddWater: _addWater,
-    //       currentIntake: _currentIntake,
-    //       goalIntake: _goalIntake,
-    //       history: _history,
-    //       previousProgress: _previousProgress,
-    //     ),
-    //   ),
-    //   Center(child: Text('Settings')),
-    // ];
   }
 
   String _gender = '';
@@ -76,7 +63,7 @@ class _HomePageState extends State<HomePage> {
           _isLoading = false;
         });
 
-        // Nếu chưa có tên, hiển thị hộp thoại nhập tên
+        // nhập tên nếu chưa có
         if ((data?['name'] ?? '').toString().isEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showNameDialog();
@@ -149,8 +136,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _handleRefresh() async {
-    await _fetchUserData(); // Gọi lại hàm fetch dữ liệu từ Firestore
-    setState(() {}); // Cập nhật lại UI
+    await _fetchUserData();
+    setState(() {});
   }
 
   void _showNameDialog() {
@@ -212,7 +199,6 @@ class _HomePageState extends State<HomePage> {
         weight: userWeight.toString(),
         onRefresh: _handleRefresh,
       ),
-      //Center(child: Text('Settings')),
     ];
 
     return Scaffold(
@@ -231,36 +217,6 @@ class _HomePageState extends State<HomePage> {
             child: IndexedStack(index: _currentIndex, children: _screens),
           ),
           buildBottomNavigationBar(),
-          //ElevatedButton(
-          // onPressed: () async {
-          //   // Giả lập việc lên lịch thông báo sau 5 giây
-          //   await Future.delayed(const Duration(seconds: 5));
-
-          //   // In log ra để kiểm tra khi nút nhấn được gọi
-          //   print("Scheduling notification...");
-
-          //   // Lên lịch thông báo
-          //   await NotificationService.scheduleNotification(
-          //     reminderId: 'test_reminder_id', // Giả lập ID
-          //     time: TimeOfDay(
-          //       hour: 12,
-          //       minute: 0,
-          //     ), // Thời gian test (12:00 PM)
-          //     days: ['Monday', 'Thurđay', 'Friday'], // Các ngày test
-          //   );
-
-          //   // Hiển thị thông báo Toast để báo thành công
-          //   Fluttertoast.showToast(
-          //     msg:
-          //         "Notification scheduled for Monday, Wednesday, Friday at 12:00 PM!",
-          //     toastLength: Toast.LENGTH_SHORT,
-          //     gravity: ToastGravity.BOTTOM,
-          //     backgroundColor: Colors.blue,
-          //     textColor: Colors.white,
-          //   );
-          // },
-          //child: const Text("Test Notification"),
-          //),
         ],
       ),
     );
@@ -357,7 +313,7 @@ class _HomePageState extends State<HomePage> {
 
       setState(() {
         _currentIntake = 0;
-        _history.clear(); // Nếu bạn cũng muốn clear lịch sử hôm nay
+        _history.clear();
       });
     }
   }
@@ -597,13 +553,12 @@ class _HomePageContentState extends State<HomePageContent> {
                         return GestureDetector(
                           onTapDown: (_) {
                             setState(() {
-                              _selectedDropIndex =
-                                  index; // Lưu chỉ số giọt nước đang nhấn
+                              _selectedDropIndex = index;
                             });
                           },
                           onTapUp: (_) {
                             setState(() {
-                              _selectedDropIndex = null; // Reset về bình thường
+                              _selectedDropIndex = null;
                             });
                             Navigator.pop(context);
                             _onSelected(amount);
@@ -653,7 +608,6 @@ class _HomePageContentState extends State<HomePageContent> {
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
-                    // Chắc chắn giá trị nhập vào là số
                     setState(() {
                       _customAmount = double.tryParse(value) ?? 0.0;
                     });
@@ -690,82 +644,7 @@ class _HomePageContentState extends State<HomePageContent> {
     widget.onAddWater(amount);
   }
 
-  // // === History Section ===
-  // Widget buildHistorySection(List<Map<String, dynamic>> history) {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Padding(
-  //         padding: const EdgeInsets.symmetric(horizontal: 16),
-  //         child: Row(
-  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //           children: [
-  //             Text(
-  //               'History',
-  //               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //             ),
-  //             TextButton(
-  //               onPressed: () {},
-  //               child: Text(
-  //                 'View all →',
-  //                 style: TextStyle(fontSize: 18, color: Color(0xFF19A7CE)),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ),
-  //       SizedBox(height: 8),
-  //       Divider(
-  //         color: Colors.grey.withOpacity(0.3),
-  //         thickness: 2,
-  //         indent: 16,
-  //         endIndent: 16,
-  //       ),
-  //       SizedBox(height: 10),
-  //       Container(
-  //         height: 130,
-  //         child: ListView.builder(
-  //           scrollDirection: Axis.horizontal,
-  //           itemCount: history.length,
-  //           itemBuilder: (context, index) {
-  //             return Padding(
-  //               padding: const EdgeInsets.symmetric(horizontal: 10.0),
-  //               child: Column(
-  //                 children: [
-  //                   Container(
-  //                     width: 80,
-  //                     height: 80,
-  //                     decoration: BoxDecoration(
-  //                       shape: BoxShape.circle,
-  //                       image: DecorationImage(
-  //                         image: AssetImage("assets/glass.png"),
-  //                         fit: BoxFit.cover,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   SizedBox(height: 4),
-
-  //                   Text(
-  //                     '${history[index]['time']}',
-  //                     style: TextStyle(fontSize: 12),
-  //                   ),
-  //                   Text(
-  //                     '${history[index]['amount']} ml',
-  //                     style: TextStyle(
-  //                       fontSize: 14,
-  //                       fontWeight: FontWeight.bold,
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //             );
-  //           },
-  //         ),
-  //       ),
-  //       SizedBox(height: 10),
-  //     ],
-  //   );
-  // }
+  // === History Section ===
   Widget buildHistorySection(List<Map<String, dynamic>> history) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

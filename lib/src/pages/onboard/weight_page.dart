@@ -143,14 +143,10 @@ class _WeightPageState extends State<WeightPage> {
 
             await saveUserInfoToFirestore();
 
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context, selectedWeight);
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => HomePage()),
-              );
-            }
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
             // Navigator.push(
             //   context,
             //   MaterialPageRoute(builder: (context) => HomePage()),

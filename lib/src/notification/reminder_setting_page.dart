@@ -240,9 +240,6 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
           time: TimeOfDay(hour: selectedHour, minute: selectedMinute),
           days: selectedDays,
         );
-
-        Fluttertoast.showToast(msg: "✅ Đã lên lịch thành công!");
-
         // Quay lại màn hình trước
         Navigator.pop(context, widget.reminder);
       },
