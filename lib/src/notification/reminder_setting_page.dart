@@ -157,11 +157,18 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
         Navigator.pop(context, widget.reminder);
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF146C94),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        backgroundColor: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Colors.blue),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       ),
-      child: const Text("Save", style: TextStyle(color: Colors.white)),
+      child: const Text(
+        "Save reminder",
+        style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
