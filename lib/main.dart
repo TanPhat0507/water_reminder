@@ -10,6 +10,8 @@ import 'package:water_reminder/src/service/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService.init();
+
   runApp(const MyApp());
 }
 
@@ -18,17 +20,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      NotificationService.init(context);
-    });
-    return MaterialApp(
-      title: 'Water Reminder',
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
-        primarySwatch: Colors.blue,
-      ),
-      home: RootPage(),
-      debugShowCheckedModeBanner: false,
+    return Builder(
+      builder: (context) {
+        NotificationService.init();
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'Water Reminder',
+          theme: ThemeData(
+            scaffoldBackgroundColor: Colors.white,
+            primarySwatch: Colors.blue,
+          ),
+          home: RootPage(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

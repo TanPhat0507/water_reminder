@@ -29,7 +29,12 @@ class Reminder {
 
 extension ReminderFormatter on Reminder {
   String getFormattedDays() {
-    final daysList = days.split(', ').map((e) => e.trim()).toList();
+    final daysList =
+        days
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
 
     const allDays = [
       'Monday',

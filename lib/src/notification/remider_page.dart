@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'reminder_setting_page.dart';
 import '../models/reminder.dart';
+import '../service/notification_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class ReminderPage extends StatefulWidget {
   const ReminderPage({Key? key}) : super(key: key);
@@ -155,7 +157,7 @@ class _ReminderPageState extends State<ReminderPage> {
             ),
 
             IconButton(
-              iconSize: 32,
+              iconSize: 35,
               icon: Icon(
                 reminder.isEnabled ? Icons.toggle_on : Icons.toggle_off,
                 color: reminder.isEnabled ? Colors.blue : Colors.grey,
@@ -175,6 +177,21 @@ class _ReminderPageState extends State<ReminderPage> {
     if (user == null || reminder.id == null) return;
 
     final newStatus = !reminder.isEnabled;
+
+    if (newStatus) {
+      for (final day in reminder.days.split(', ')) {
+        await NotificationService.scheduleAuto(
+          reminderId: reminder.id!,
+          time: TimeOfDay(
+            hour: int.parse(reminder.time.split(':')[0]),
+            minute: int.parse(reminder.time.split(':')[1]),
+          ),
+          days: [day],
+        );
+      }
+    } else {
+      await NotificationService.cancelReminder(reminder.id!);
+    }
 
     await FirebaseFirestore.instance
         .collection('users')

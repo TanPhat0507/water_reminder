@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/reminder.dart';
 import '../service/notification_service.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:fluttertoast/fluttertoast.dart';
 
 class ReminderSettingPage extends StatefulWidget {
   final Reminder reminder;
@@ -23,9 +25,17 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
   int selectedHour = 0;
   int selectedMinute = 0;
   List<String> selectedDays = [];
+  String days = '';
 
   String getFormattedDays() {
-    final allDays = [
+    final daysList =
+        days
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+
+    const allDays = [
       'Monday',
       'Tuesday',
       'Wednesday',
@@ -34,20 +44,38 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
       'Saturday',
       'Sunday',
     ];
+    const normalDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
-    final weekDays = allDays.sublist(0, 5); // Monday - Friday
-
-    if (selectedDays.toSet().containsAll(allDays.toSet()) &&
-        selectedDays.length == allDays.length) {
+    if (daysList.length == 7 || allDays.every(daysList.contains)) {
       return 'Everyday';
     }
 
-    if (selectedDays.toSet().containsAll(weekDays.toSet()) &&
-        selectedDays.length == 5) {
+    if (daysList.length == 5 && normalDays.every(daysList.contains)) {
       return 'Normal day';
     }
 
-    return selectedDays.join(', ');
+    return daysList.join(', ');
+  }
+
+  int _getWeekdayNumber(String day) {
+    switch (day.toLowerCase()) {
+      case 'monday':
+        return DateTime.monday;
+      case 'tuesday':
+        return DateTime.tuesday;
+      case 'wednesday':
+        return DateTime.wednesday;
+      case 'thursday':
+        return DateTime.thursday;
+      case 'friday':
+        return DateTime.friday;
+      case 'saturday':
+        return DateTime.saturday;
+      case 'sunday':
+        return DateTime.sunday;
+      default:
+        return DateTime.monday;
+    }
   }
 
   @override
@@ -156,16 +184,28 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
           color: Colors.white,
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Text(
-                selectedDays.isEmpty ? 'Repeat' : getFormattedDays(),
-                style: const TextStyle(fontSize: 16, color: Colors.black),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
+            const Text(
+              'Repeat',
+              style: TextStyle(fontSize: 16, color: Colors.black),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  selectedDays.isEmpty ? '' : getFormattedDays(),
+                  style: const TextStyle(fontSize: 16, color: Colors.black),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Colors.grey,
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -175,20 +215,41 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
   Widget buildSaveButton() {
     return ElevatedButton(
       onPressed: () async {
-        widget.reminder.time =
+        final formattedTime =
             '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}';
+        widget.reminder.time = formattedTime;
         widget.reminder.days = selectedDays.join(', ');
         widget.reminder.isEnabled = true;
 
+        // Lưu reminder vào Firestore (tạo hoặc cập nhật)
         await _saveReminderToFirestore(widget.reminder);
 
-        // Schedule noti
-        final selectedTime = TimeOfDay(
-          hour: selectedHour,
-          minute: selectedMinute,
-        );
-        await NotificationService.scheduleNotification(selectedTime);
+        // ⚠️ BẮT BUỘC: Đảm bảo reminder.id đã có sau khi lưu
+        if (widget.reminder.id == null) {
+          Fluttertoast.showToast(
+            msg: "❌ reminder.id is null! Không thể lên lịch",
+          );
+          return;
+        }
 
+        print('🔄 reminder.id: ${widget.reminder.id}');
+
+        // Huỷ thông báo cũ nếu có
+        await NotificationService.cancelReminder(widget.reminder.id!);
+
+        // Gọi scheduleAuto và in log xác nhận
+        Fluttertoast.showToast(msg: "📅 Đang lên lịch thông báo...");
+        print('📤 Gọi scheduleAuto()');
+
+        await NotificationService.scheduleAuto(
+          reminderId: widget.reminder.id!,
+          time: TimeOfDay(hour: selectedHour, minute: selectedMinute),
+          days: selectedDays,
+        );
+
+        Fluttertoast.showToast(msg: "✅ Đã lên lịch thành công!");
+
+        // Quay lại màn hình trước
         Navigator.pop(context, widget.reminder);
       },
       style: ElevatedButton.styleFrom(
@@ -223,6 +284,25 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
       ),
       child: const Text("Delete reminder", style: TextStyle(color: Colors.red)),
     );
+  }
+
+  tz.TZDateTime _nextInstanceOfToday(TimeOfDay time) {
+    final now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    // Nếu thời gian đã qua, lên lịch cho ngày mai
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    return scheduled;
   }
 
   void _showRepeatDialog() {

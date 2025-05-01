@@ -5,6 +5,8 @@ import '../onboard/weight_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:water_reminder/src/service/authentication_service.dart';
 import '../../notification/remider_page.dart';
+import '../../service/notification_service.dart';
+import '../../notification/reminder_setting_page.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String gender;
@@ -56,6 +58,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // TextButton(
+            //   onPressed: () {
+            //     NotificationService.testOneMinuteNotification();
+            //   },
+            //   child: const Text(
+            //     "🔔 Test thông báo sau 1 phút",
+            //     style: TextStyle(color: Colors.blue),
+            //   ),
+            // ),
             sectionTitle('Setting'),
             settingItem(
               icon: Icons.notifications,

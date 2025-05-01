@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:water_reminder/src/pages/main/setting_page.dart';
+import 'package:water_reminder/src/service/notification_service.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -229,6 +231,36 @@ class _HomePageState extends State<HomePage> {
             child: IndexedStack(index: _currentIndex, children: _screens),
           ),
           buildBottomNavigationBar(),
+          //ElevatedButton(
+          // onPressed: () async {
+          //   // Giả lập việc lên lịch thông báo sau 5 giây
+          //   await Future.delayed(const Duration(seconds: 5));
+
+          //   // In log ra để kiểm tra khi nút nhấn được gọi
+          //   print("Scheduling notification...");
+
+          //   // Lên lịch thông báo
+          //   await NotificationService.scheduleNotification(
+          //     reminderId: 'test_reminder_id', // Giả lập ID
+          //     time: TimeOfDay(
+          //       hour: 12,
+          //       minute: 0,
+          //     ), // Thời gian test (12:00 PM)
+          //     days: ['Monday', 'Thurđay', 'Friday'], // Các ngày test
+          //   );
+
+          //   // Hiển thị thông báo Toast để báo thành công
+          //   Fluttertoast.showToast(
+          //     msg:
+          //         "Notification scheduled for Monday, Wednesday, Friday at 12:00 PM!",
+          //     toastLength: Toast.LENGTH_SHORT,
+          //     gravity: ToastGravity.BOTTOM,
+          //     backgroundColor: Colors.blue,
+          //     textColor: Colors.white,
+          //   );
+          // },
+          //child: const Text("Test Notification"),
+          //),
         ],
       ),
     );

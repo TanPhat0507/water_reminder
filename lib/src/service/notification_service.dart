@@ -4,35 +4,47 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:flutter/cupertino.dart';
 import 'package:water_reminder/src/pages/main/home_page.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // Initialize Notification
-  static Future<void> init(BuildContext context) async {
-    final IOSFlutterLocalNotificationsPlugin? iosPlugin =
-        _notificationsPlugin
-            .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin
-            >();
+  static Future<void> init() async {
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initSettings = InitializationSettings(android: androidInit);
 
-    await iosPlugin?.requestPermissions(alert: true, badge: true, sound: true);
-
-    const AndroidInitializationSettings androidInitSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    final InitializationSettings settings = InitializationSettings(
-      android: androidInitSettings,
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'water_channel',
+      'Water Reminders',
+      description: 'Reminders to drink water',
+      importance: Importance.max,
     );
 
+    try {
+      await _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.createNotificationChannel(channel);
+    } catch (e) {
+      print("Error creating notification channel: $e");
+    }
+
     await _notificationsPlugin.initialize(
-      settings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Khi người dùng nhấn vào notification
-        Navigator.of(context).pushAndRemoveUntil(
+      initSettings,
+      onDidReceiveNotificationResponse: (response) {
+        Fluttertoast.showToast(
+          msg: "Notification clicked",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.blue,
+          textColor: Colors.white,
+          fontSize: 16,
+        );
+        navigatorKey.currentState?.pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const HomePage()),
           (route) => false,
         );
@@ -40,9 +52,162 @@ class NotificationService {
     );
 
     tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
   }
 
-  // Hiển thị thông báo foreground (toast)
+  // static Future<void> scheduleNotification({
+  //   required String reminderId,
+  //   required TimeOfDay time,
+  //   required List<String> days,
+  // }) async {
+  //   for (final day in days) {
+  //     final weekday = _weekdayStringToInt(day);
+  //     final int id = _generateNotificationId(reminderId, weekday);
+  //     final tz.TZDateTime scheduledTime = _nextInstanceOfWeekdayTime(
+  //       time,
+  //       weekday,
+  //     );
+  //     final String message = _getMessageByTime(time.hour);
+
+  //     await _notificationsPlugin.zonedSchedule(
+  //       id,
+  //       "💧 Time to Hydrate!",
+  //       message,
+  //       scheduledTime,
+  //       NotificationDetails(
+  //         android: AndroidNotificationDetails(
+  //           'water_channel',
+  //           'Water Reminders',
+  //           channelDescription: 'Reminders to drink water',
+  //           importance: Importance.max,
+  //           priority: Priority.high,
+  //         ),
+  //       ),
+  //       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+  //       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  //     );
+  //   }
+  // }
+
+  // static Future<void> scheduleOneTimeNotification({
+  //   required String reminderId,
+  //   required TimeOfDay time,
+  // }) async {
+  //   final now = tz.TZDateTime.now(tz.local);
+  //   tz.TZDateTime scheduled = tz.TZDateTime(
+  //     tz.local,
+  //     now.year,
+  //     now.month,
+  //     now.day,
+  //     time.hour,
+  //     time.minute,
+  //   );
+
+  //   if (scheduled.isBefore(now)) {
+  //     scheduled = scheduled.add(const Duration(days: 1));
+  //   }
+
+  //   await _notificationsPlugin.zonedSchedule(
+  //     reminderId.hashCode,
+  //     "💧 Time to Hydrate!",
+  //     _getMessageByTime(time.hour),
+  //     scheduled,
+  //     const NotificationDetails(
+  //       android: AndroidNotificationDetails(
+  //         'water_channel',
+  //         'Water Reminders',
+  //         channelDescription: 'One-time water reminder',
+  //         importance: Importance.max,
+  //         priority: Priority.high,
+  //       ),
+  //     ),
+  //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  //   );
+  // }
+  static Future<void> scheduleAuto({
+    required String reminderId,
+    required TimeOfDay time,
+    required List<String> days, // có thể rỗng
+  }) async {
+    if (days.isEmpty) {
+      final now = tz.TZDateTime.now(tz.local);
+      tz.TZDateTime scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        time.hour,
+        time.minute,
+      );
+
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
+
+      await _notificationsPlugin.zonedSchedule(
+        reminderId.hashCode,
+        "💧 Time to Hydrate!",
+        _getMessageByTime(time.hour),
+        scheduled,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'water_channel',
+            'Water Reminders',
+            channelDescription: 'Reminders to drink water',
+            importance: Importance.max,
+            priority: Priority.high,
+            icon: 'app_icon',
+            //sound: RawResourceAndroidNotificationSound('notification_sound'),
+            //fullScreenIntent: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+      print('🔔 Scheduled notification for ${scheduled.toString()}');
+      Fluttertoast.showToast(
+        msg:
+            "🔔 Notification scheduled at ${scheduled.hour}:${scheduled.minute}",
+      );
+    } else {
+      // Có chọn ngày => lặp lại hàng tuần
+      for (final day in days) {
+        final weekday = _weekdayStringToInt(day);
+        final int id = _generateNotificationId(reminderId, weekday);
+        final tz.TZDateTime scheduledTime = _nextInstanceOfWeekdayTime(
+          time,
+          weekday,
+        );
+        final String message = _getMessageByTime(time.hour);
+
+        await _notificationsPlugin.zonedSchedule(
+          id,
+          "💧 Time to Hydrate!",
+          message,
+          scheduledTime,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'water_channel',
+              'Water Reminders',
+              channelDescription: 'Weekly water reminder',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+          ),
+          matchDateTimeComponents: DateTimeComponents.time,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        );
+      }
+    }
+  }
+
+  static Future<void> cancelReminder(String reminderId) async {
+    // Loop through all weekdays (from Monday to Sunday) to cancel the notification
+    for (int day = DateTime.monday; day <= DateTime.sunday; day++) {
+      final int id = _generateNotificationId(reminderId, day);
+      await _notificationsPlugin.cancel(id);
+    }
+  }
+
   static void showForegroundToast(String message) {
     Fluttertoast.showToast(
       msg: message,
@@ -54,88 +219,15 @@ class NotificationService {
     );
   }
 
-  // Lên lịch thông báo theo giờ cụ thể
-  static Future<void> scheduleNotification(TimeOfDay time) async {
-    final tz.TZDateTime scheduledTime = _nextInstanceOfTime(time);
-    final int id = Random().nextInt(100000);
-
-    final String message = _getMessageByTime(time.hour);
-
-    await _notificationsPlugin.zonedSchedule(
-      id,
-      "💧 Time to Hydrate!",
-      message,
-      scheduledTime,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'water_channel',
-          'Water Reminders',
-          channelDescription: 'Reminders to drink water',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-      ),
-      // Removed invalid parameter 'dateTimeComponents'
-      matchDateTimeComponents: DateTimeComponents.time, // lặp hàng ngày
-      androidScheduleMode:
-          AndroidScheduleMode.exactAllowWhileIdle, // Added parameter
-    );
-  }
-
-  // Tạo thông điệp theo khung giờ
-  static String _getMessageByTime(int hour) {
-    if (hour >= 6 && hour < 11) {
-      // Buổi sáng
-      const morningMessages = [
-        "Ngày mới tươi như giọt sương – bạn cũng nên uống một ngụm nước đầu tiên nhé! 🌞",
-        "Cốc nước sáng sớm là năng lượng mở màn cho cả ngày! 🚿",
-        "Dậy sớm uống nước, bạn giống như cây xanh được tưới mát vậy đó! 🌿",
-        "Tự thưởng bản thân một ly nước và nụ cười đầu ngày nào! ☀️",
-        "Cơ thể bạn đã ‘online’ chưa? Một ngụm nước để khởi động nhé! 🛫",
-      ];
-      return morningMessages[Random().nextInt(morningMessages.length)];
-    } else if (hour >= 11 && hour < 15) {
-      const noonMessages = [
-        "Đừng để nắng trưa làm bạn héo – uống nước để giữ sức sống nha! 🌞💧",
-        "Bữa trưa ngon hơn khi bạn có đủ nước trong người! 🍱💦",
-        "Chút nước – một sự hồi sinh nhẹ giữa ngày dài! 🌊",
-        "Bạn giống như pin điện thoại – cần ‘sạc nước’ mỗi trưa! 🔋",
-        "Khô môi chưa? Uống nước là cách yêu bản thân giữa ngày! 💙",
-      ];
-      return noonMessages[Random().nextInt(noonMessages.length)];
-    } else if (hour >= 15 && hour < 18) {
-      const afternoonMessages = [
-        "Đừng để cơ thể ‘đuối pin’ – một ngụm nước giúp bạn lấy lại phong độ! ⚡",
-        "Não bộ cần nước để tiếp tục sáng tạo đấy! Uống chút nhé! 🧠💧",
-        "Một ly nước = một lần refresh cho bạn! 🔄",
-        "Tặng cơ thể bạn một ‘điểm tâm chiều’ – là nước mát lành! 🫖",
-        "Chiều nay, bạn uống nước chưa? Hãy làm điều đó cho chính mình! 🤗",
-      ];
-      return afternoonMessages[Random().nextInt(afternoonMessages.length)];
-    } else if (hour >= 18 && hour < 22) {
-      const eveningMessages = [
-        "Cả ngày đã mệt rồi, một ly nước là món quà cho cơ thể bạn đó! 🎁",
-        "Tối về, mọi thứ dịu lại – đừng quên dịu dàng với bản thân bằng nước nhé! 🌙",
-        "Một chút nước, một chút thư giãn – bạn xứng đáng mà! 🛋️",
-        "Uống nước lúc này như đang vỗ về tâm hồn vậy… 🍵",
-        "Bạn đã chăm sóc bản thân tốt chưa? Đừng quên uống nước! 💙",
-      ];
-      return eveningMessages[Random().nextInt(eveningMessages.length)];
-    } else {
-      const nightMessages = [
-        "Một ngụm nước nhẹ để khép lại ngày dài – ngủ ngon nhé! 💤",
-        "Giấc mơ đẹp bắt đầu từ một cơ thể đủ nước! 🌌",
-        "Nước là lời chúc ngủ ngon ngọt ngào nhất dành cho bạn! 😴💧",
-        "Tắt đèn, tắt lo âu, uống nước và say giấc nào… 🌙✨",
-        "Đừng để cơ thể khát khi tâm trí đang nghỉ ngơi – uống nước trước khi ngủ nhé! 🌜",
-      ];
-      return nightMessages[Random().nextInt(nightMessages.length)];
+  static int _generateNotificationId(String reminderId, int weekday) {
+    if (reminderId == null || reminderId.isEmpty) {
+      throw ArgumentError("Reminder ID cannot be null or empty");
     }
+    return reminderId.hashCode + weekday;
   }
 
-  // Chuyển TimeOfDay -> tz.TZDateTime gần nhất
-  static tz.TZDateTime _nextInstanceOfTime(TimeOfDay time) {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+  static tz.TZDateTime _nextInstanceOfWeekdayTime(TimeOfDay time, int weekday) {
+    final now = tz.TZDateTime.now(tz.local);
     tz.TZDateTime scheduled = tz.TZDateTime(
       tz.local,
       now.year,
@@ -145,10 +237,106 @@ class NotificationService {
       time.minute,
     );
 
-    if (scheduled.isBefore(now)) {
+    while (scheduled.weekday != weekday || scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
 
     return scheduled;
+  }
+
+  // static Future<void> testOneMinuteNotification() async {
+  //   final now = tz.TZDateTime.now(tz.local);
+  //   final scheduled = now.add(const Duration(minutes: 1));
+
+  //   await _notificationsPlugin.zonedSchedule(
+  //     999999, // ID test tạm
+  //     "🧪 Test Notification",
+  //     "Thông báo này hiển thị sau 1 phút từ bây giờ.",
+  //     scheduled,
+  //     const NotificationDetails(
+  //       android: AndroidNotificationDetails(
+  //         'water_channel',
+  //         'Water Reminders',
+  //         channelDescription: 'Test notification channel',
+  //         importance: Importance.max,
+  //         priority: Priority.high,
+  //       ),
+  //     ),
+  //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  //   );
+
+  //   print("✅ Test notification scheduled for: $scheduled");
+  //   Fluttertoast.showToast(
+  //     msg:
+  //         "✅ Đã đặt thông báo sau 1 phút (lúc ${scheduled.hour}:${scheduled.minute})",
+  //   );
+  // }
+
+  static int _weekdayStringToInt(String day) {
+    switch (day.toLowerCase()) {
+      case 'monday':
+        return DateTime.monday;
+      case 'tuesday':
+        return DateTime.tuesday;
+      case 'wednesday':
+        return DateTime.wednesday;
+      case 'thursday':
+        return DateTime.thursday;
+      case 'friday':
+        return DateTime.friday;
+      case 'saturday':
+        return DateTime.saturday;
+      case 'sunday':
+        return DateTime.sunday;
+      default:
+        return DateTime.monday;
+    }
+  }
+
+  static String _getMessageByTime(int hour) {
+    const morning = [
+      "Ngày mới tươi như giọt sương – bạn cũng nên uống một ngụm nước đầu tiên nhé! 🌞",
+      "Cốc nước sáng sớm là năng lượng mở màn cho cả ngày! 🚿",
+      "Dậy sớm uống nước, bạn giống như cây xanh được tưới mát vậy đó! 🌿",
+      "Tự thưởng bản thân một ly nước và nụ cười đầu ngày nào! ☀️",
+      "Cơ thể bạn đã ‘online’ chưa? Một ngụm nước để khởi động nhé! 🛫",
+    ];
+    const noon = [
+      "Đừng để nắng trưa làm bạn héo – uống nước để giữ sức sống nha! 🌞💧",
+      "Bữa trưa ngon hơn khi bạn có đủ nước trong người! 🍱💦",
+      "Chút nước – một sự hồi sinh nhẹ giữa ngày dài! 🌊",
+      "Bạn giống như pin điện thoại – cần ‘sạc nước’ mỗi trưa! 🔋",
+      "Khô môi chưa? Uống nước là cách yêu bản thân giữa ngày! 💙",
+    ];
+    const afternoon = [
+      "Đừng để cơ thể ‘đuối pin’ – một ngụm nước giúp bạn lấy lại phong độ! ⚡",
+      "Não bộ cần nước để tiếp tục sáng tạo đấy! Uống chút nhé! 🧠💧",
+      "Một ly nước = một lần refresh cho bạn! 🔄",
+      "Tặng cơ thể bạn một ‘điểm tâm chiều’ – là nước mát lành! 🫖",
+      "Chiều nay, bạn uống nước chưa? Hãy làm điều đó cho chính mình! 🤗",
+    ];
+    const evening = [
+      "Cả ngày đã mệt rồi, một ly nước là món quà cho cơ thể bạn đó! 🎁",
+      "Tối về, mọi thứ dịu lại – đừng quên dịu dàng với bản thân bằng nước nhé! 🌙",
+      "Một chút nước, một chút thư giãn – bạn xứng đáng mà! 🛋️",
+      "Uống nước lúc này như đang vỗ về tâm hồn vậy… 🍵",
+      "Bạn đã chăm sóc bản thân tốt chưa? Đừng quên uống nước! 💙",
+    ];
+    const night = [
+      "Một ngụm nước nhẹ để khép lại ngày dài – ngủ ngon nhé! 💤",
+      "Giấc mơ đẹp bắt đầu từ một cơ thể đủ nước! 🌌",
+      "Nước là lời chúc ngủ ngon ngọt ngào nhất dành cho bạn! 😴💧",
+      "Tắt đèn, tắt lo âu, uống nước và say giấc nào… 🌙✨",
+      "Đừng để cơ thể khát khi tâm trí đang nghỉ ngơi – uống nước trước khi ngủ nhé! 🌜",
+    ];
+
+    if (hour >= 6 && hour < 11)
+      return morning[Random().nextInt(morning.length)];
+    if (hour >= 11 && hour < 15) return noon[Random().nextInt(noon.length)];
+    if (hour >= 15 && hour < 18)
+      return afternoon[Random().nextInt(afternoon.length)];
+    if (hour >= 18 && hour < 22)
+      return evening[Random().nextInt(evening.length)];
+    return night[Random().nextInt(night.length)];
   }
 }
