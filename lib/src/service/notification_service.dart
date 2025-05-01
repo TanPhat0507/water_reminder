@@ -13,6 +13,14 @@ class NotificationService {
 
   // Initialize Notification
   static Future<void> init(BuildContext context) async {
+    final IOSFlutterLocalNotificationsPlugin? iosPlugin =
+        _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >();
+
+    await iosPlugin?.requestPermissions(alert: true, badge: true, sound: true);
+
     const AndroidInitializationSettings androidInitSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 

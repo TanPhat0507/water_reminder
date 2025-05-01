@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/reminder.dart';
+import '../service/notification_service.dart';
 
 class ReminderSettingPage extends StatefulWidget {
   final Reminder reminder;
@@ -156,15 +157,14 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
         ),
         child: Row(
           children: [
-            Flexible(
+            Expanded(
               child: Text(
                 selectedDays.isEmpty ? 'Repeat' : getFormattedDays(),
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 16, color: Colors.black),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
             ),
-            const SizedBox(width: 8),
             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),
@@ -181,6 +181,14 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
         widget.reminder.isEnabled = true;
 
         await _saveReminderToFirestore(widget.reminder);
+
+        // Schedule noti
+        final selectedTime = TimeOfDay(
+          hour: selectedHour,
+          minute: selectedMinute,
+        );
+        await NotificationService.scheduleNotification(selectedTime);
+
         Navigator.pop(context, widget.reminder);
       },
       style: ElevatedButton.styleFrom(
@@ -342,7 +350,7 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
         ),
       );
 
-      Navigator.pop(context, null);
+      Navigator.pop(context, 'deleted');
     } catch (e) {
       print('Delete reminder error: $e');
       ScaffoldMessenger.of(context).showSnackBar(

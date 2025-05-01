@@ -46,21 +46,20 @@ class _ReminderPageState extends State<ReminderPage> {
           }).toList();
       isLoading = false;
     });
+    await _loadRemindersFromFirestore();
   }
 
   Future<void> _navigateToEdit(Reminder reminder) async {
-    final updated = await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ReminderSettingPage(reminder: reminder),
       ),
     );
 
-    if (updated != null) {
-      setState(() {
-        reminders.removeWhere((r) => r.id == reminder.id);
-      });
-    } else if (updated is Reminder) {
+    if (result == 'deleted') {
+      _loadRemindersFromFirestore();
+    } else if (result is Reminder) {
       _loadRemindersFromFirestore();
     }
   }
@@ -74,8 +73,8 @@ class _ReminderPageState extends State<ReminderPage> {
       ),
     );
 
-    if (result != null && result is Reminder) {
-      _loadRemindersFromFirestore(); // Refresh sau khi thêm
+    if (result is Reminder) {
+      _loadRemindersFromFirestore();
     }
   }
 
