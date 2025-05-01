@@ -156,7 +156,7 @@ class NotificationService {
             channelDescription: 'Reminders to drink water',
             importance: Importance.max,
             priority: Priority.high,
-            icon: 'app_icon',
+            icon: 'water_icon',
             //sound: RawResourceAndroidNotificationSound('notification_sound'),
             //fullScreenIntent: true,
           ),
@@ -243,34 +243,6 @@ class NotificationService {
 
     return scheduled;
   }
-
-  // static Future<void> testOneMinuteNotification() async {
-  //   final now = tz.TZDateTime.now(tz.local);
-  //   final scheduled = now.add(const Duration(minutes: 1));
-
-  //   await _notificationsPlugin.zonedSchedule(
-  //     999999, // ID test tạm
-  //     "🧪 Test Notification",
-  //     "Thông báo này hiển thị sau 1 phút từ bây giờ.",
-  //     scheduled,
-  //     const NotificationDetails(
-  //       android: AndroidNotificationDetails(
-  //         'water_channel',
-  //         'Water Reminders',
-  //         channelDescription: 'Test notification channel',
-  //         importance: Importance.max,
-  //         priority: Priority.high,
-  //       ),
-  //     ),
-  //     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-  //   );
-
-  //   print("✅ Test notification scheduled for: $scheduled");
-  //   Fluttertoast.showToast(
-  //     msg:
-  //         "✅ Đã đặt thông báo sau 1 phút (lúc ${scheduled.hour}:${scheduled.minute})",
-  //   );
-  // }
 
   static int _weekdayStringToInt(String day) {
     switch (day.toLowerCase()) {

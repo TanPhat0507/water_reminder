@@ -221,13 +221,11 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
         widget.reminder.days = selectedDays.join(', ');
         widget.reminder.isEnabled = true;
 
-        // Lưu reminder vào Firestore (tạo hoặc cập nhật)
         await _saveReminderToFirestore(widget.reminder);
 
-        // ⚠️ BẮT BUỘC: Đảm bảo reminder.id đã có sau khi lưu
         if (widget.reminder.id == null) {
           Fluttertoast.showToast(
-            msg: "❌ reminder.id is null! Không thể lên lịch",
+            msg: "reminder.id is null! Không thể lên lịch",
           );
           return;
         }
@@ -236,10 +234,6 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
 
         // Huỷ thông báo cũ nếu có
         await NotificationService.cancelReminder(widget.reminder.id!);
-
-        // Gọi scheduleAuto và in log xác nhận
-        Fluttertoast.showToast(msg: "📅 Đang lên lịch thông báo...");
-        print('📤 Gọi scheduleAuto()');
 
         await NotificationService.scheduleAuto(
           reminderId: widget.reminder.id!,
