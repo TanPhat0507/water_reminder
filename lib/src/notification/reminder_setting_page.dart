@@ -23,6 +23,32 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
   int selectedMinute = 0;
   List<String> selectedDays = [];
 
+  String getFormattedDays() {
+    final allDays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+
+    final weekDays = allDays.sublist(0, 5); // Monday - Friday
+
+    if (selectedDays.toSet().containsAll(allDays.toSet()) &&
+        selectedDays.length == allDays.length) {
+      return 'Everyday';
+    }
+
+    if (selectedDays.toSet().containsAll(weekDays.toSet()) &&
+        selectedDays.length == 5) {
+      return 'Normal day';
+    }
+
+    return selectedDays.join(', ');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -129,15 +155,16 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
           color: Colors.white,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
+            Flexible(
               child: Text(
-                selectedDays.isEmpty ? 'Repeat' : selectedDays.join(', '),
+                selectedDays.isEmpty ? 'Repeat' : getFormattedDays(),
                 style: const TextStyle(fontSize: 16),
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
+            const SizedBox(width: 8),
             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),
@@ -193,51 +220,65 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
   void _showRepeatDialog() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder:
-          (_) => StatefulBuilder(
-            builder: (context, setModalState) {
-              final days = [
-                'Monday',
-                'Tuesday',
-                'Wednesday',
-                'Thursday',
-                'Friday',
-                'Saturday',
-                'Sunday',
-              ];
-
-              return Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children:
-                      days.map((day) {
-                        final isSelected = selectedDays.contains(day);
-                        return ListTile(
-                          title: Text(day),
-                          trailing:
-                              isSelected
-                                  ? const Icon(Icons.check, color: Colors.blue)
-                                  : null,
-                          onTap: () {
-                            setModalState(() {
-                              if (isSelected) {
-                                selectedDays.remove(day);
-                              } else {
-                                selectedDays.add(day);
-                              }
-                            });
-                            setState(() {});
-                          },
-                        );
-                      }).toList(),
-                ),
-              );
-            },
-          ),
+      builder: (_) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.5,
+          minChildSize: 0.4,
+          maxChildSize: 0.8,
+          builder: (_, controller) {
+            final days = [
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+              'Saturday',
+              'Sunday',
+            ];
+            return StatefulBuilder(
+              builder: (context, setModalState) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ListView.separated(
+                    controller: controller,
+                    itemCount: days.length,
+                    separatorBuilder:
+                        (context, index) => Divider(
+                          color: Colors.grey.shade300,
+                          thickness: 1,
+                          height: 1,
+                        ),
+                    itemBuilder: (context, index) {
+                      final day = days[index];
+                      final isSelected = selectedDays.contains(day);
+                      return ListTile(
+                        title: Text(day),
+                        trailing:
+                            isSelected
+                                ? const Icon(Icons.check, color: Colors.blue)
+                                : null,
+                        onTap: () {
+                          setModalState(() {
+                            isSelected
+                                ? selectedDays.remove(day)
+                                : selectedDays.add(day);
+                          });
+                          setState(() {});
+                        },
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -257,40 +298,59 @@ class _ReminderSettingPageState extends State<ReminderSettingPage> {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    if (reminder.id != null) {
-      // Update existing
-      await remindersRef.doc(reminder.id).update(reminderData);
-    } else {
-      // Create new
-      final newDoc = await remindersRef.add(reminderData);
-      reminder.id = newDoc.id;
-    }
+    try {
+      if (reminder.id != null) {
+        await remindersRef.doc(reminder.id).update(reminderData);
+      } else {
+        final newDoc = await remindersRef.add(reminderData);
+        reminder.id = newDoc.id;
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reminder saved successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reminder saved successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Save reminder error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save reminder.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _deleteReminderFromFirestore(Reminder reminder) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || reminder.id == null) return;
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('reminders')
-        .doc(reminder.id)
-        .delete();
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('reminders')
+          .doc(reminder.id!)
+          .delete();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reminder deleted.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    Navigator.pop(context, null); // Trả null để xóa khỏi danh sách ngoài
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reminder deleted.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      Navigator.pop(context, null);
+    } catch (e) {
+      print('Delete reminder error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to delete reminder.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

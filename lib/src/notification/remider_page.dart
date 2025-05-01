@@ -56,8 +56,12 @@ class _ReminderPageState extends State<ReminderPage> {
       ),
     );
 
-    if (updated != null && updated is Reminder) {
-      _loadRemindersFromFirestore(); // Refresh sau khi update
+    if (updated != null) {
+      setState(() {
+        reminders.removeWhere((r) => r.id == reminder.id);
+      });
+    } else if (updated is Reminder) {
+      _loadRemindersFromFirestore();
     }
   }
 
@@ -118,7 +122,7 @@ class _ReminderPageState extends State<ReminderPage> {
       onTap: () => _navigateToEdit(reminder),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xff19A7CE), width: 1),
           borderRadius: BorderRadius.circular(10),
@@ -128,24 +132,31 @@ class _ReminderPageState extends State<ReminderPage> {
           children: [
             const Icon(Icons.access_time, color: Colors.black54, size: 20),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  reminder.time,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reminder.time,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Text(
-                  reminder.days,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    reminder.getFormattedDays(),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
+
             IconButton(
+              iconSize: 32,
               icon: Icon(
                 reminder.isEnabled ? Icons.toggle_on : Icons.toggle_off,
                 color: reminder.isEnabled ? Colors.blue : Colors.grey,
