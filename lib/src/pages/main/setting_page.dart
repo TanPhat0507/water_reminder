@@ -82,20 +82,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 final result = await Navigator.push<String>(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => GenderPage(initialGender: gender),
+                    builder:
+                        (context) => GenderPage(
+                          initialGender: gender,
+                          isFromSettings: true,
+                        ),
                   ),
                 );
 
                 if (result != null) {
                   final user = FirebaseAuth.instance.currentUser;
                   if (user != null) {
+                    final doc =
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .get();
+
+                    final currentWeight = doc['weight'] ?? 0;
+
+                    final updatedTarget = calculateDailyWaterTarget(
+                      result,
+                      currentWeight,
+                    );
+
                     await FirebaseFirestore.instance
                         .collection('users')
                         .doc(user.uid)
-                        .update({'gender': result});
+                        .update({
+                          'gender': result,
+                          'dailyWaterTarget': updatedTarget,
+                          'updatedAt': FieldValue.serverTimestamp(),
+                        });
 
                     setState(() {
                       gender = result;
+                      goalIntake = updatedTarget.toString();
                     });
                   }
 
@@ -111,7 +133,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => WeightPage(gender: gender),
+                    builder:
+                        (context) =>
+                            WeightPage(gender: gender, isFromSettings: true),
                   ),
                 );
                 final user = FirebaseAuth.instance.currentUser;

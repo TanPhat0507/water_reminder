@@ -3,8 +3,13 @@ import 'package:water_reminder/src/pages/onboard/weight_page.dart';
 
 class GenderPage extends StatefulWidget {
   final String? initialGender;
+  final bool isFromSettings;
 
-  const GenderPage({super.key, this.initialGender});
+  const GenderPage({
+    super.key,
+    this.initialGender,
+    this.isFromSettings = false,
+  });
 
   @override
   State<GenderPage> createState() => _GenderPageState();
@@ -138,14 +143,26 @@ class _GenderPageState extends State<GenderPage> {
           ),
           onPressed: () {
             if (selectedGender != null) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WeightPage(gender: selectedGender!),
-                ),
-              );
+              if (widget.isFromSettings) {
+                Navigator.pop(
+                  context,
+                  selectedGender,
+                ); // Trả về dữ liệu cho settings
+              } else {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => WeightPage(
+                          gender: selectedGender!,
+                          isFromSettings: false,
+                        ),
+                  ),
+                );
+              }
             }
           },
+
           child: const Text(
             "NEXT",
             style: TextStyle(color: Colors.white, fontSize: 16),

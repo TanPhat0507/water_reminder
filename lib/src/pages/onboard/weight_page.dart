@@ -6,8 +6,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class WeightPage extends StatefulWidget {
   final int? initialWeight;
+  final bool isFromSettings;
 
-  const WeightPage({super.key, required this.gender, this.initialWeight});
+  const WeightPage({
+    super.key,
+    required this.gender,
+    this.initialWeight,
+    this.isFromSettings = false,
+  });
 
   final String gender;
 
@@ -143,15 +149,16 @@ class _WeightPageState extends State<WeightPage> {
 
             await saveUserInfoToFirestore();
 
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()),
-            );
-            // Navigator.push(
-            //   context,
-            //   MaterialPageRoute(builder: (context) => HomePage()),
-            // );
+            if (widget.isFromSettings) {
+              Navigator.pop(context); // quay về SettingsPage
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => HomePage()),
+              );
+            }
           },
+
           child: const Text(
             "NEXT",
             style: TextStyle(color: Colors.white, fontSize: 16),
