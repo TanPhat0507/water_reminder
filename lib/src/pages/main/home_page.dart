@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:water_reminder/src/pages/main/setting_page.dart';
+import 'package:water_reminder/src/service/notification_service.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +20,10 @@ class _HomePageState extends State<HomePage> {
   double _scale = 1.0;
   double _customAmount = 0.0;
   double _previousProgress = 0.0;
+  String userName = '';
+
+  String userGender = '';
+  int userWeight = 0;
 
   // Lượng nước nhập tay
   TextEditingController _waterAmountController = TextEditingController();
@@ -33,21 +40,10 @@ class _HomePageState extends State<HomePage> {
     _fetchUserData();
     checkAndResetIntake();
     fetchDrinkHistory();
-    // _screens = [
-    //   Center(child: Text('Report Page')),
-    //   Center(
-    //     child: HomePageContent(
-    //       onAddWater: _addWater,
-    //       currentIntake: _currentIntake,
-    //       goalIntake: _goalIntake,
-    //       history: _history,
-    //       previousProgress: _previousProgress,
-    //     ),
-    //   ),
-    //   Center(child: Text('Settings')),
-    // ];
   }
 
+  String _gender = '';
+  String _weight = '';
   Future<void> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -60,11 +56,19 @@ class _HomePageState extends State<HomePage> {
         final data = doc.data();
         setState(() {
           _goalIntake = (data?['dailyWaterTarget'] ?? 2000).toDouble();
-          _currentIntake =
-              (data?['todayIntake'] ?? 0)
-                  .toDouble(); //load lượng nước đã uống trong ngày
+          _currentIntake = (data?['todayIntake'] ?? 0).toDouble();
+          userGender = data?['gender'] ?? '';
+          userWeight = data?['weight'] ?? 0;
+          userName = data?['name'] ?? '';
           _isLoading = false;
         });
+
+        // nhập tên nếu chưa có
+        if ((data?['name'] ?? '').toString().isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showNameDialog();
+          });
+        }
       } else {
         setState(() {
           _goalIntake = 2000;
@@ -75,28 +79,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Future<void> updateTodayIntake(int amount) async {
-  //   final user = FirebaseAuth.instance.currentUser;
-  //   if (user == null) return;
-
-  //   final userDoc = FirebaseFirestore.instance
-  //       .collection('users')
-  //       .doc(user.uid);
-
-  //   await FirebaseFirestore.instance.runTransaction((transaction) async {
-  //     final snapshot = await transaction.get(userDoc);
-
-  //     if (!snapshot.exists) return;
-
-  //     final data = snapshot.data() as Map<String, dynamic>;
-  //     final currentIntake = (data['todayIntake'] ?? 0) as int;
-
-  //     transaction.update(userDoc, {
-  //       'todayIntake': currentIntake + amount,
-  //       'lastUpdatedDate': FieldValue.serverTimestamp(), // update timestamp
-  //     });
-  //   });
-  // }
   Future<void> updateTodayIntake(int amount) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -122,27 +104,77 @@ class _HomePageState extends State<HomePage> {
             .doc(user.uid)
             .collection('drink_history')
             .orderBy('timestamp', descending: true)
-            .limit(4)
+            .limit(30)
             .get();
+    final today = DateTime.now();
 
     final historyData =
-        snapshot.docs.map((doc) {
-          final data = doc.data();
-          final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-          final formattedTime =
-              timestamp != null
-                  ? TimeOfDay.fromDateTime(timestamp).format(context)
-                  : TimeOfDay.now().format(
-                    context,
-                  ); // Nếu null thì lấy giờ hiện tại
+        snapshot.docs
+            .where((doc) {
+              final timestamp = (doc['timestamp'] as Timestamp?)?.toDate();
+              return timestamp != null &&
+                  timestamp.year == today.year &&
+                  timestamp.month == today.month &&
+                  timestamp.day == today.day;
+            })
+            .take(4) // lấy 4 cái mới nhất trong ngày hôm nay
+            .map((doc) {
+              final data = doc.data();
+              final timestamp = (data['timestamp'] as Timestamp).toDate();
+              final formattedTime = TimeOfDay.fromDateTime(
+                timestamp,
+              ).format(context);
 
-          return {'time': formattedTime, 'amount': data['amount']};
-        }).toList();
+              return {'time': formattedTime, 'amount': data['amount']};
+            })
+            .toList();
 
     setState(() {
       _history.clear();
       _history.addAll(historyData);
     });
+  }
+
+  Future<void> _handleRefresh() async {
+    await _fetchUserData();
+    setState(() {});
+  }
+
+  void _showNameDialog() {
+    final TextEditingController nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("What's your name?"),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(hintText: "Enter your name"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                String name = nameController.text.trim();
+                if (name.isNotEmpty) {
+                  final user = FirebaseAuth.instance.currentUser;
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user!.uid)
+                      .update({'name': name});
+                  setState(() {
+                    userName = name;
+                  });
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -160,17 +192,30 @@ class _HomePageState extends State<HomePage> {
         previousProgress: _previousProgress,
         onAddWater: _addWater,
       ),
-      Center(child: Text('Settings')),
+
+      SettingsScreen(
+        goalIntake: _goalIntake.toInt().toString(),
+        gender: userGender,
+        weight: userWeight.toString(),
+        onRefresh: _handleRefresh,
+      ),
     ];
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(kToolbarHeight),
-        child: buildHeader(),
-      ),
+      appBar:
+          _currentIndex == 2
+              ? null
+              : PreferredSize(
+                preferredSize: Size.fromHeight(kToolbarHeight),
+                child: buildHeader(),
+              ),
+
       body: Column(
+        //dùng indexedStack để giữ nguyên tab navigation khi chuyển qua trang khác
         children: [
-          Expanded(child: _screens[_currentIndex]),
+          Expanded(
+            child: IndexedStack(index: _currentIndex, children: _screens),
+          ),
           buildBottomNavigationBar(),
         ],
       ),
@@ -180,7 +225,7 @@ class _HomePageState extends State<HomePage> {
   // === Header ===
   Widget buildHeader() {
     return AppBar(
-      title: Text('Hi, KieuMy', style: TextStyle(color: Colors.black)),
+      title: Text('Hi, $userName', style: TextStyle(color: Colors.black)),
       backgroundColor: Colors.white,
       elevation: 0,
     );
@@ -190,7 +235,10 @@ class _HomePageState extends State<HomePage> {
   Widget buildBottomNavigationBar() {
     return BottomNavigationBar(
       currentIndex: _currentIndex,
-      onTap: (index) {
+      onTap: (index) async {
+        if (index == 2) {
+          await _fetchUserData(); // load lại gender, weight
+        }
         setState(() {
           _currentIndex = index;
         });
@@ -265,7 +313,7 @@ class _HomePageState extends State<HomePage> {
 
       setState(() {
         _currentIntake = 0;
-        _history.clear(); // Nếu bạn cũng muốn clear lịch sử hôm nay
+        _history.clear();
       });
     }
   }
@@ -505,13 +553,12 @@ class _HomePageContentState extends State<HomePageContent> {
                         return GestureDetector(
                           onTapDown: (_) {
                             setState(() {
-                              _selectedDropIndex =
-                                  index; // Lưu chỉ số giọt nước đang nhấn
+                              _selectedDropIndex = index;
                             });
                           },
                           onTapUp: (_) {
                             setState(() {
-                              _selectedDropIndex = null; // Reset về bình thường
+                              _selectedDropIndex = null;
                             });
                             Navigator.pop(context);
                             _onSelected(amount);
@@ -561,7 +608,6 @@ class _HomePageContentState extends State<HomePageContent> {
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
-                    // Chắc chắn giá trị nhập vào là số
                     setState(() {
                       _customAmount = double.tryParse(value) ?? 0.0;
                     });
@@ -598,82 +644,7 @@ class _HomePageContentState extends State<HomePageContent> {
     widget.onAddWater(amount);
   }
 
-  // // === History Section ===
-  // Widget buildHistorySection(List<Map<String, dynamic>> history) {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Padding(
-  //         padding: const EdgeInsets.symmetric(horizontal: 16),
-  //         child: Row(
-  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //           children: [
-  //             Text(
-  //               'History',
-  //               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //             ),
-  //             TextButton(
-  //               onPressed: () {},
-  //               child: Text(
-  //                 'View all →',
-  //                 style: TextStyle(fontSize: 18, color: Color(0xFF19A7CE)),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ),
-  //       SizedBox(height: 8),
-  //       Divider(
-  //         color: Colors.grey.withOpacity(0.3),
-  //         thickness: 2,
-  //         indent: 16,
-  //         endIndent: 16,
-  //       ),
-  //       SizedBox(height: 10),
-  //       Container(
-  //         height: 130,
-  //         child: ListView.builder(
-  //           scrollDirection: Axis.horizontal,
-  //           itemCount: history.length,
-  //           itemBuilder: (context, index) {
-  //             return Padding(
-  //               padding: const EdgeInsets.symmetric(horizontal: 10.0),
-  //               child: Column(
-  //                 children: [
-  //                   Container(
-  //                     width: 80,
-  //                     height: 80,
-  //                     decoration: BoxDecoration(
-  //                       shape: BoxShape.circle,
-  //                       image: DecorationImage(
-  //                         image: AssetImage("assets/glass.png"),
-  //                         fit: BoxFit.cover,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   SizedBox(height: 4),
-
-  //                   Text(
-  //                     '${history[index]['time']}',
-  //                     style: TextStyle(fontSize: 12),
-  //                   ),
-  //                   Text(
-  //                     '${history[index]['amount']} ml',
-  //                     style: TextStyle(
-  //                       fontSize: 14,
-  //                       fontWeight: FontWeight.bold,
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //             );
-  //           },
-  //         ),
-  //       ),
-  //       SizedBox(height: 10),
-  //     ],
-  //   );
-  // }
+  // === History Section ===
   Widget buildHistorySection(List<Map<String, dynamic>> history) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:water_reminder/src/pages/onboard/weight_page.dart';
 
 class GenderPage extends StatefulWidget {
-  const GenderPage({super.key});
+  final String? initialGender;
+  final bool isFromSettings;
+
+  const GenderPage({
+    super.key,
+    this.initialGender,
+    this.isFromSettings = false,
+  });
 
   @override
   State<GenderPage> createState() => _GenderPageState();
@@ -10,6 +17,12 @@ class GenderPage extends StatefulWidget {
 
 class _GenderPageState extends State<GenderPage> {
   String? selectedGender;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedGender = widget.initialGender;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,14 +141,28 @@ class _GenderPageState extends State<GenderPage> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          onPressed: () async {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => WeightPage(gender: selectedGender!),
-              ),
-            );
+          onPressed: () {
+            if (selectedGender != null) {
+              if (widget.isFromSettings) {
+                Navigator.pop(
+                  context,
+                  selectedGender,
+                ); // Trả về dữ liệu cho settings
+              } else {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => WeightPage(
+                          gender: selectedGender!,
+                          isFromSettings: false,
+                        ),
+                  ),
+                );
+              }
+            }
           },
+
           child: const Text(
             "NEXT",
             style: TextStyle(color: Colors.white, fontSize: 16),
