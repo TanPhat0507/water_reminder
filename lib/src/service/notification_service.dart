@@ -60,8 +60,13 @@ class NotificationService {
     required TimeOfDay time,
     required List<String> days, // có thể rỗng
   }) async {
-    if (days.isEmpty) {
-      final now = tz.TZDateTime.now(tz.local);
+    final now = tz.TZDateTime.now(tz.local);
+    print('Type of days: ${days.runtimeType}'); // In kiểu của days
+
+    print('Days: $days');
+
+    if (days.isEmpty || days.every((day) => day.trim().isEmpty)) {
+      // Nếu không chọn ngày => chỉ lên lịch 1 lần vào giờ đã chọn
       tz.TZDateTime scheduled = tz.TZDateTime(
         tz.local,
         now.year,
@@ -71,13 +76,15 @@ class NotificationService {
         time.minute,
       );
 
+      // Nếu thời gian đã qua trong ngày, lên lịch vào ngày hôm sau
       if (scheduled.isBefore(now)) {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
+      // Lên lịch thông báo 1 lần
       await _notificationsPlugin.zonedSchedule(
         reminderId.hashCode,
-        "💧 Time to Hydrate!",
+        "💧 Đến giờ uống nước rồi!",
         _getMessageByTime(time.hour),
         scheduled,
         const NotificationDetails(
@@ -93,11 +100,6 @@ class NotificationService {
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
-      print('🔔 Scheduled notification for ${scheduled.toString()}');
-      Fluttertoast.showToast(
-        msg:
-            "🔔 Notification scheduled at ${scheduled.hour}:${scheduled.minute}",
-      );
     } else {
       // Có chọn ngày => lặp lại hàng tuần
       for (final day in days) {
@@ -111,7 +113,7 @@ class NotificationService {
 
         await _notificationsPlugin.zonedSchedule(
           id,
-          "💧 Time to Hydrate!",
+          "💧 Đến giờ uống nước rồi!",
           message,
           scheduledTime,
           const NotificationDetails(
@@ -123,7 +125,7 @@ class NotificationService {
               priority: Priority.high,
             ),
           ),
-          matchDateTimeComponents: DateTimeComponents.time,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         );
       }
