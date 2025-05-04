@@ -138,7 +138,7 @@ class _WeightPageState extends State<WeightPage> {
             await saveUserInfoToFirestore();
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => HistoryPage()),
+              MaterialPageRoute(builder: (context) => HomePage()),
             );
           },
           child: const Text(
