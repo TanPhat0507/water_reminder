@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({Key? key}) : super(key: key);
@@ -16,11 +17,50 @@ class _HistoryPageState extends State<HistoryPage> {
   List<Map<String, dynamic>> weeklyData = [];
   List<Map<String, dynamic>> monthlyData = [];
   bool isLoading = true;
+  StreamSubscription<QuerySnapshot>? _subscription;
 
   @override
   void initState() {
     super.initState();
     _fetchDrinkHistory();
+    _setupRealTimeListener();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _setupRealTimeListener() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    _subscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('drink_history')
+        .snapshots()
+        .listen((_) {
+          _fetchDrinkHistory();
+        });
+  }
+
+  String _getRangeText() {
+    if (isSelected[0]) {
+      // Nếu đang ở chế độ tuần
+      final now = DateTime.now();
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final endOfWeek = startOfWeek.add(Duration(days: 6));
+      final formatter = DateFormat('dd/MM/yyyy');
+      return '${formatter.format(startOfWeek)} - ${formatter.format(endOfWeek)}';
+    } else {
+      // Nếu đang ở chế độ năm (12 tháng)
+      final now = DateTime.now();
+      final startMonth = DateTime(now.year, now.month - 11);
+      final formatter = DateFormat('MM/yyyy');
+      return '${formatter.format(startMonth)} - ${formatter.format(now)}';
+    }
   }
 
   Future<void> _fetchDrinkHistory() async {
@@ -68,7 +108,7 @@ class _HistoryPageState extends State<HistoryPage> {
     // Khởi tạo 7 ngày gần nhất với giá trị 0
     for (int i = 6; i >= 0; i--) {
       DateTime date = DateTime.now().subtract(Duration(days: i));
-      String dayKey = DateFormat('EEE').format(date);
+      String dayKey = DateFormat('EE').format(date);
       dailyTotals[dayKey] = 0;
     }
 
@@ -76,7 +116,7 @@ class _HistoryPageState extends State<HistoryPage> {
     for (var doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final timestamp = (data['timestamp'] as Timestamp).toDate();
-      final day = DateFormat('EEE').format(timestamp);
+      final day = DateFormat('EE').format(timestamp);
       final amount = (data['amount'] as num).toDouble();
 
       if (dailyTotals.containsKey(day)) {
@@ -97,7 +137,7 @@ class _HistoryPageState extends State<HistoryPage> {
     // Khởi tạo 12 tháng gần nhất với giá trị 0
     for (int i = 11; i >= 0; i--) {
       DateTime date = DateTime.now().subtract(Duration(days: 30 * i));
-      String monthKey = DateFormat('MMM').format(date);
+      String monthKey = DateFormat('MM').format(date);
       monthlyTotals[monthKey] = 0;
     }
 
@@ -105,7 +145,7 @@ class _HistoryPageState extends State<HistoryPage> {
     for (var doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final timestamp = (data['timestamp'] as Timestamp).toDate();
-      final month = DateFormat('MMM').format(timestamp);
+      final month = DateFormat('MM').format(timestamp);
       final amount = (data['amount'] as num).toDouble();
 
       if (monthlyTotals.containsKey(month)) {
@@ -125,25 +165,31 @@ class _HistoryPageState extends State<HistoryPage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEFF7FF),
+      backgroundColor: const Color(0xFFF6F1F1),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [buildTitle(), buildToggleButtons(), buildChart()],
-        ),
-      ),
-    );
-  }
-
-  Widget buildTitle() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 24.0, top: 24.0, right: 24.0),
-      child: Text(
-        'History',
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
+          children: [
+            Center(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  buildToggleButtons(),
+                  SizedBox(height: 10),
+                  Text(
+                    _getRangeText(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                ],
+              ),
+            ),
+            buildChart(),
+          ],
         ),
       ),
     );
@@ -190,77 +236,84 @@ class _HistoryPageState extends State<HistoryPage> {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            // Text(
-            //   'ml',
-            //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            // ),
-            SizedBox(height: 8),
-            Expanded(
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: maxY,
-                  barTouchData: BarTouchData(enabled: true),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        interval: maxY / 5,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: TextStyle(fontSize: 12),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    topTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          if (value >= 0 && value < currentData.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(
-                                isSelected[0]
-                                    ? currentData[value.toInt()]['day']
-                                    : currentData[value.toInt()]['month'],
-                                style: TextStyle(fontSize: 12),
-                              ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Text(
+              //   'ml',
+              //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // ),
+              SizedBox(height: 8),
+              Expanded(
+                child: BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    maxY: maxY,
+                    barTouchData: BarTouchData(enabled: true),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 40,
+                          interval: maxY / 5,
+                          getTitlesWidget: (value, meta) {
+                            return Text(
+                              value.toInt().toString(),
+                              style: TextStyle(fontSize: 12),
                             );
-                          }
-                          return const SizedBox.shrink();
-                        },
+                          },
+                        ),
+                      ),
+                      rightTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            if (value >= 0 && value < currentData.length) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  isSelected[0]
+                                      ? currentData[value.toInt()]['day']
+                                      : currentData[value.toInt()]['month'],
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
                       ),
                     ),
+                    borderData: FlBorderData(show: false),
+                    barGroups: List.generate(currentData.length, (index) {
+                      return BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(
+                            toY: currentData[index]['amount'].toDouble(),
+                            width: 16,
+                            color: Color(0xFF19A7CE),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ],
+                      );
+                    }),
                   ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: List.generate(currentData.length, (index) {
-                    return BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                          toY: currentData[index]['amount'].toDouble(),
-                          width: 16,
-                          color: Color(0xFF19A7CE),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ],
-                    );
-                  }),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
