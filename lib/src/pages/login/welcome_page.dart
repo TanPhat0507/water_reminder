@@ -16,9 +16,10 @@ class WelcomePage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'Hello👋',
+                'Stay hydrated!\nDrinking enough water keeps you healthy and energized.',
                 style: GoogleFonts.raleway(
                   textStyle: const TextStyle(
                     color: Color(0xFF19A7CE),
@@ -26,6 +27,7 @@ class WelcomePage extends StatelessWidget {
                     fontSize: 24,
                   ),
                 ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
               Text(
@@ -37,6 +39,7 @@ class WelcomePage extends StatelessWidget {
                     fontSize: 18,
                   ),
                 ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 30),
               getstartedButton(context),

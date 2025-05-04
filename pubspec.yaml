@@ -43,6 +43,17 @@ dependencies:
   google_fonts: ^6.2.1
   fl_chart: ^0.71.0
   intl: ^0.20.2
+  flutter_timezone: ^4.1.0
+  flutter_local_notifications: ^19.1.0
+  flutter_launcher_icons: ^0.14.3
+  #fluttertoast: ^8.2.12
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/noti_icon.png"
+  min_sdk_android: 21
+
 
 dev_dependencies:
   flutter_test:
@@ -110,3 +121,4 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
