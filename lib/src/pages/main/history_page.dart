@@ -163,7 +163,6 @@ class _HistoryPageState extends State<HistoryPage> {
     if (isLoading) {
       return Center(child: CircularProgressIndicator());
     }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF6F1F1),
       body: SafeArea(
@@ -263,7 +262,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           interval: maxY / 5,
                           getTitlesWidget: (value, meta) {
                             return Text(
-                              value.toInt().toString(),
+                              '${value.toInt()} ml',
                               style: TextStyle(fontSize: 12),
                             );
                           },
