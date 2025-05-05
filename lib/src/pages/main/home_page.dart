@@ -680,9 +680,14 @@ class _HomePageContentState extends State<HomePageContent> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -780,6 +785,7 @@ class _HomePageContentState extends State<HomePageContent> {
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
+                SizedBox(height: 10),
               ],
             ),
           ),
