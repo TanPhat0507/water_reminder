@@ -1,15 +1,69 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class ViewAllPage extends StatelessWidget {
+class ViewAllPage extends StatefulWidget {
   final List<Map<String, dynamic>> history;
+  final Function(int) onUpdateProgress;
 
-  const ViewAllPage({Key? key, required this.history}) : super(key: key);
+  const ViewAllPage({
+    Key? key,
+    required this.history,
+    required this.onUpdateProgress,
+  }) : super(key: key);
+
+  @override
+  State<ViewAllPage> createState() => _ViewAllPageState();
+}
+
+class _ViewAllPageState extends State<ViewAllPage> {
+  late List<Map<String, dynamic>> _localHistory;
+
+  @override
+  void initState() {
+    super.initState();
+    _localHistory = List<Map<String, dynamic>>.from(widget.history);
+  }
 
   String getImageForAmount(int amount) {
     if (amount <= 120) return 'assets/coffee_cup.png';
     if (amount >= 450) return 'assets/water_bottle.png';
     if (amount >= 280 && amount <= 320) return 'assets/soda_glass.png';
     return 'assets/water_glass.png';
+  }
+
+  Future<void> _deleteHistoryItem(
+    BuildContext context,
+    String docId,
+    int amount,
+    int index,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('drink_history')
+          .doc(docId)
+          .delete();
+
+      setState(() {
+        _localHistory.removeAt(index);
+      });
+
+      widget.onUpdateProgress(amount); // Gọi callback về HomePage
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Deleted successfully!')));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+    }
   }
 
   @override
@@ -21,16 +75,17 @@ class ViewAllPage extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       body:
-          history.isEmpty
+          _localHistory.isEmpty
               ? Center(child: Text('No drinking history today'))
               : ListView.separated(
                 padding: const EdgeInsets.all(16),
-                itemCount: history.length,
+                itemCount: _localHistory.length,
                 separatorBuilder: (_, __) => Divider(),
                 itemBuilder: (context, index) {
-                  final item = history[index];
+                  final item = _localHistory[index];
                   final amount = item['amount'];
                   final time = item['time'];
+                  final docId = item['docId'];
                   final imagePath = getImageForAmount(amount);
 
                   return Card(
@@ -72,6 +127,19 @@ class ViewAllPage extends StatelessWidget {
                                 ),
                               ],
                             ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              if (docId != null) {
+                                _deleteHistoryItem(
+                                  context,
+                                  docId,
+                                  amount,
+                                  index,
+                                );
+                              }
+                            },
                           ),
                         ],
                       ),
