@@ -5,6 +5,7 @@ import 'dart:async';
 import 'history_page.dart';
 import 'package:water_reminder/src/pages/main/setting_page.dart';
 import 'package:water_reminder/src/service/notification_service.dart';
+import 'package:water_reminder/src/pages/main/view_all_page.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class HomePage extends StatefulWidget {
@@ -416,20 +417,6 @@ class _HomePageState extends State<HomePage> {
         .add({'amount': amount, 'timestamp': FieldValue.serverTimestamp()});
   }
 
-  // void _addWater(int amount) {
-  //   setState(() {
-  //     _previousProgress = (_currentIntake / _goalIntake).clamp(
-  //       0.0,
-  //       1.0,
-  //     ); // Ghi nhớ progress cũ
-  //     _currentIntake += amount;
-  //     _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
-  //   });
-  //   saveDrinkHistory(amount);
-  //   updateTodayIntake(amount);
-  //   fetchDrinkHistory();
-  // }
-
   Future<void> checkAndResetIntake() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -488,12 +475,19 @@ class HomePageContent extends StatefulWidget {
 }
 
 class _HomePageContentState extends State<HomePageContent> {
-  // late double _currentIntake;
-  // late double _goalIntake;
   double _customAmount = 0.0;
   int? _selectedDropIndex;
   TextEditingController _waterAmountController = TextEditingController();
   double _scale = 1.0;
+
+  List<Map<String, dynamic>> get _history => widget.history;
+
+  final List<Map<String, dynamic>> predefinedAmounts = [
+    {'amount': 100, 'image': 'assets/coffee_cup.png'},
+    {'amount': 500, 'image': 'assets/water_bottle.png'},
+    {'amount': 300, 'image': 'assets/soda_glass.png'},
+    {'amount': 150, 'image': 'assets/water_glass.png'},
+  ];
 
   @override
   void initState() {
@@ -576,14 +570,6 @@ class _HomePageContentState extends State<HomePageContent> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white,
-                      // boxShadow: [
-                      //   BoxShadow(
-                      //     color: Colors.grey.withOpacity(0.3),
-                      //     spreadRadius: 3,
-                      //     blurRadius: 5,
-                      //     offset: Offset(0, 4),
-                      //   ),
-                      // ],
                     ),
                   ),
                 ),
@@ -699,9 +685,11 @@ class _HomePageContentState extends State<HomePageContent> {
                 Wrap(
                   spacing: 20,
                   children:
-                      [100, 200, 300, 400].asMap().entries.map((entry) {
+                      predefinedAmounts.asMap().entries.map((entry) {
                         final index = entry.key;
-                        final amount = entry.value;
+                        final item = entry.value;
+                        final amount = item['amount'];
+                        final imagePath = item['image'];
 
                         return GestureDetector(
                           onTapDown: (_) {
@@ -727,11 +715,7 @@ class _HomePageContentState extends State<HomePageContent> {
                             curve: Curves.easeOutBack,
                             child: Column(
                               children: [
-                                Icon(
-                                  Icons.water_drop,
-                                  size: 40,
-                                  color: Colors.blue,
-                                ),
+                                Image.asset(imagePath, width: 50, height: 50),
                                 SizedBox(height: 4),
                                 Text(
                                   '$amount ml',
@@ -743,6 +727,7 @@ class _HomePageContentState extends State<HomePageContent> {
                         );
                       }).toList(),
                 ),
+
                 const SizedBox(height: 20),
                 Text(
                   'Or',
@@ -798,8 +783,55 @@ class _HomePageContentState extends State<HomePageContent> {
     widget.onAddWater(amount);
   }
 
+  Future<void> fetchAllDrinkingHistory() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('drink_history')
+            .orderBy('timestamp', descending: true)
+            .get(); // Không giới hạn số lượng, lấy tất cả lịch sử uống nước
+
+    final today = DateTime.now();
+
+    final historyData =
+        snapshot.docs
+            .where((doc) {
+              final timestamp = (doc['timestamp'] as Timestamp?)?.toDate();
+              return timestamp != null &&
+                  timestamp.year == today.year &&
+                  timestamp.month == today.month &&
+                  timestamp.day == today.day;
+            })
+            .map((doc) {
+              final data = doc.data();
+              final timestamp = (data['timestamp'] as Timestamp).toDate();
+              final formattedTime = TimeOfDay.fromDateTime(
+                timestamp,
+              ).format(context);
+
+              return {'time': formattedTime, 'amount': data['amount']};
+            })
+            .toList();
+
+    setState(() {
+      _history.clear();
+      _history.addAll(historyData); // Lấy và hiển thị tất cả lịch sử trong ngày
+    });
+  }
+
   // === History Section ===
   Widget buildHistorySection(List<Map<String, dynamic>> history) {
+    String getImageForAmount(int amount) {
+      if (amount <= 120) return 'assets/coffee_cup.png';
+      if (amount >= 450) return 'assets/water_bottle.png';
+      if (amount >= 280 && amount <= 320) return 'assets/soda_glass.png';
+      return 'assets/water_glass.png';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -814,7 +846,17 @@ class _HomePageContentState extends State<HomePageContent> {
               ),
               TextButton(
                 onPressed: () {
-                  // TODO: Implement view all page if needed
+                  // Gọi fetchAllDrinkingHistory để lấy tất cả lịch sử uống nước trong ngày
+                  fetchAllDrinkingHistory(); // Lấy toàn bộ lịch sử
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ViewAllPage(
+                            history: _history,
+                          ), // Truyền toàn bộ history
+                    ),
+                  );
                 },
                 child: Text(
                   'View all →',
@@ -852,7 +894,9 @@ class _HomePageContentState extends State<HomePageContent> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 image: DecorationImage(
-                                  image: AssetImage("assets/glass.png"),
+                                  image: AssetImage(
+                                    getImageForAmount(history[index]['amount']),
+                                  ),
                                   fit: BoxFit.cover,
                                 ),
                               ),
