@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import 'history_page.dart';
 import 'package:water_reminder/src/pages/main/setting_page.dart';
 import 'package:water_reminder/src/service/notification_service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -40,6 +42,23 @@ class _HomePageState extends State<HomePage> {
     _fetchUserData();
     checkAndResetIntake();
     fetchDrinkHistory();
+    // _screens = [
+    //   Center(child: Text('Report Page')),
+    //   Center(
+    //     child: HomePageContent(
+    //       onAddWater: _addWater,
+    //       currentIntake: _currentIntake,
+    //       goalIntake: _goalIntake,
+    //       history: _history,
+    //       previousProgress: _previousProgress,
+    //     ),
+    //   ),
+    //   Center(child: Text('Settings')),
+    // ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkGoalStatus();
+    });
+    _setupDailyCheck();
   }
 
   String _gender = '';
@@ -135,6 +154,135 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _addWater(int amount) {
+    setState(() {
+      _previousProgress = (_currentIntake / _goalIntake).clamp(0.0, 1.0);
+      _currentIntake += amount;
+      _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
+    });
+    saveDrinkHistory(amount);
+    updateTodayIntake(amount);
+    fetchDrinkHistory();
+
+    // Check if goal is reached after adding water
+    _checkGoalStatus();
+  }
+
+  void _checkGoalStatus() {
+    final now = DateTime.now();
+    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    if (_currentIntake >= _goalIntake) {
+      // Show congratulations if goal is reached
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showAlertDialog(
+          Image.asset(
+            'assets/congra.png',
+            width: 100,
+            height: 100,
+            fit: BoxFit.contain,
+          ),
+          'Congratulations! 🎉',
+          'You\'ve reached your daily water goal of ${_goalIntake.toInt()}ml!',
+        );
+      });
+    } else if (now.isAfter(endOfDay)) {
+      // Show fail message if day ended without reaching goal
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showAlertDialog(
+          Image.asset(
+            'assets/opps.png',
+            width: 100,
+            height: 100,
+            fit: BoxFit.contain,
+          ),
+          'Oops!',
+          'You didn\'t reach your daily water goal today.',
+        );
+      });
+    }
+  }
+
+  void _showAlertDialog(Image imageWidget, String title, String message) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            contentPadding: EdgeInsets.all(24.0),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                imageWidget,
+                SizedBox(height: 24.0),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(height: 16.0),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    vertical: 12.0,
+                    horizontal: 16.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF19A7CE),
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Text(
+                    message,
+                    style: TextStyle(fontSize: 14.0, color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                SizedBox(height: 24.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      child: Text(
+                        'Go back home',
+                        style: TextStyle(color: Color(0xFF146C94)),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Color(0xFF146C94),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  void _setupDailyCheck() {
+    final now = DateTime.now();
+    final midnight = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ); // Next midnight
+
+    final durationUntilMidnight = midnight.difference(now);
+
+    Timer(durationUntilMidnight, () {
+      if (mounted) {
+        _checkGoalStatus();
+        _setupDailyCheck(); // Set up for next day
+      }
+    });
+  }
+
   Future<void> _handleRefresh() async {
     await _fetchUserData();
     setState(() {});
@@ -184,7 +332,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     _screens = [
-      Center(child: Text('Report Page')),
+      HistoryPage(),
       HomePageContent(
         currentIntake: _currentIntake,
         goalIntake: _goalIntake,
@@ -268,19 +416,19 @@ class _HomePageState extends State<HomePage> {
         .add({'amount': amount, 'timestamp': FieldValue.serverTimestamp()});
   }
 
-  void _addWater(int amount) {
-    setState(() {
-      _previousProgress = (_currentIntake / _goalIntake).clamp(
-        0.0,
-        1.0,
-      ); // Ghi nhớ progress cũ
-      _currentIntake += amount;
-      _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
-    });
-    saveDrinkHistory(amount);
-    updateTodayIntake(amount);
-    fetchDrinkHistory();
-  }
+  // void _addWater(int amount) {
+  //   setState(() {
+  //     _previousProgress = (_currentIntake / _goalIntake).clamp(
+  //       0.0,
+  //       1.0,
+  //     ); // Ghi nhớ progress cũ
+  //     _currentIntake += amount;
+  //     _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
+  //   });
+  //   saveDrinkHistory(amount);
+  //   updateTodayIntake(amount);
+  //   fetchDrinkHistory();
+  // }
 
   Future<void> checkAndResetIntake() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -532,9 +680,14 @@ class _HomePageContentState extends State<HomePageContent> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -632,6 +785,7 @@ class _HomePageContentState extends State<HomePageContent> {
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
+                SizedBox(height: 10),
               ],
             ),
           ),

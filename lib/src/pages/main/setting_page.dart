@@ -42,7 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF1F2F7),
+      backgroundColor: Color(0xFFF6F1F1),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
