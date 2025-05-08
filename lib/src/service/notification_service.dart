@@ -61,12 +61,11 @@ class NotificationService {
     required List<String> days, // có thể rỗng
   }) async {
     final now = tz.TZDateTime.now(tz.local);
-    print('Type of days: ${days.runtimeType}'); // In kiểu của days
+    print('Type of days: ${days.runtimeType}');
 
     print('Days: $days');
 
     if (days.isEmpty || days.every((day) => day.trim().isEmpty)) {
-      // Nếu không chọn ngày => chỉ lên lịch 1 lần vào giờ đã chọn
       tz.TZDateTime scheduled = tz.TZDateTime(
         tz.local,
         now.year,
@@ -76,12 +75,10 @@ class NotificationService {
         time.minute,
       );
 
-      // Nếu thời gian đã qua trong ngày, lên lịch vào ngày hôm sau
       if (scheduled.isBefore(now)) {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
-      // Lên lịch thông báo 1 lần
       await _notificationsPlugin.zonedSchedule(
         reminderId.hashCode,
         "💧 Đến giờ uống nước rồi!",
@@ -101,7 +98,6 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } else {
-      // Có chọn ngày => lặp lại hàng tuần
       for (final day in days) {
         final weekday = _weekdayStringToInt(day);
         final int id = _generateNotificationId(reminderId, weekday);
