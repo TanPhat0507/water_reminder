@@ -30,13 +30,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String gender;
   late String weight;
   late String goalIntake;
+  String userName = '';
 
   @override
   void initState() {
     super.initState();
+    _fetchUserInfo();
     gender = widget.gender;
     weight = widget.weight;
     goalIntake = widget.goalIntake;
+  }
+
+  Future<void> _fetchUserInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      setState(() {
+        userName = doc['name'] ?? '';
+      });
+    }
   }
 
   @override
@@ -153,6 +169,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 widget.onRefresh(); // Cập nhật lại HomePage
               },
+            ),
+            settingItem(
+              icon: Icons.person_outline,
+              title: 'Name',
+              value: userName.isNotEmpty ? userName : 'Not set',
+              onTap: null,
             ),
 
             sectionTitle('App'),
