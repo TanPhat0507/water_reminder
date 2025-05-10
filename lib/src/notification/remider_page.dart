@@ -16,11 +16,133 @@ class ReminderPage extends StatefulWidget {
 class _ReminderPageState extends State<ReminderPage> {
   List<Reminder> reminders = [];
   bool isLoading = true;
+  // bool isFirstTimeUser = false;
 
   @override
   void initState() {
     super.initState();
-    _loadRemindersFromFirestore();
+    _checkFirstTimeUser();
+  }
+
+  Future<void> _checkFirstTimeUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('reminders')
+            .limit(
+              1,
+            ) // Chỉ cần kiểm tra 1 document để biết có reminder hay chưa
+            .get();
+
+    if (snapshot.docs.isEmpty) {
+      // Nếu chưa có reminder nào, tạo default reminders
+      await _createDefaultReminders();
+    } else {
+      // Nếu đã có reminder, load như bình thường
+      await _loadRemindersFromFirestore();
+    }
+  }
+
+  Future<void> _createDefaultReminders() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final defaultReminders = [
+        {
+          'time': '07:00',
+          'days':
+              'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+          'isEnabled': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        {
+          'time': '09:00',
+          'days':
+              'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+          'isEnabled': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        {
+          'time': '11:30',
+          'days':
+              'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+          'isEnabled': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        {
+          'time': '13:30',
+          'days':
+              'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+          'isEnabled': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        {
+          'time': '15:30',
+          'days':
+              'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+          'isEnabled': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        {
+          'time': '17:30',
+          'days':
+              'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+          'isEnabled': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        {
+          'time': '20:00',
+          'days':
+              'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+          'isEnabled': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        {
+          'time': '21:30',
+          'days':
+              'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+          'isEnabled': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      ];
+
+      final batch = FirebaseFirestore.instance.batch();
+      final remindersRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('reminders');
+
+      for (var reminder in defaultReminders) {
+        final docRef = remindersRef.doc();
+        batch.set(docRef, reminder);
+
+        final time = reminder['time'] as String;
+        final days = reminder['days'] as String;
+
+        final timeParts = time.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
+
+        for (final day in days.split(', ')) {
+          await NotificationService.scheduleAuto(
+            reminderId: docRef.id,
+            time: TimeOfDay(hour: hour, minute: minute),
+            days: [day],
+          );
+        }
+      }
+
+      await batch.commit();
+      await _loadRemindersFromFirestore();
+    } catch (e) {
+      print('Error creating default reminders: $e');
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _loadRemindersFromFirestore() async {
@@ -48,7 +170,6 @@ class _ReminderPageState extends State<ReminderPage> {
           }).toList();
       isLoading = false;
     });
-    await _loadRemindersFromFirestore();
   }
 
   Future<void> _navigateToEdit(Reminder reminder) async {
