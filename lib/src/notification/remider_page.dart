@@ -225,16 +225,27 @@ class _ReminderPageState extends State<ReminderPage> {
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : Padding(
-                padding: const EdgeInsets.all(16.0),
-                child:
-                    reminders.isEmpty
-                        ? const Text('No reminders found.')
-                        : Column(
-                          children:
-                              reminders
-                                  .map((r) => buildReminderItem(r))
-                                  .toList(),
-                        ),
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child:
+                      reminders.isEmpty
+                          ? const Text('No reminders found.')
+                          : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children:
+                                reminders
+                                    .map(
+                                      (r) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8.0,
+                                        ),
+                                        child: buildReminderItem(r),
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
+                ),
               ),
     );
   }
@@ -243,8 +254,8 @@ class _ReminderPageState extends State<ReminderPage> {
     return InkWell(
       onTap: () => _navigateToEdit(reminder),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xff19A7CE), width: 1),
           borderRadius: BorderRadius.circular(10),
