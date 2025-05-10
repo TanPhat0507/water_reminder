@@ -227,10 +227,10 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Widget buildChart() {
     final currentData = isSelected[0] ? weeklyData : monthlyData;
-    final maxY =
-        (currentData.map((e) => e['amount']).reduce((a, b) => a > b ? a : b) *
-                1.2)
-            .toDouble();
+    final maxY = currentData.fold(
+      1000.0,
+      (max, e) => max > e['amount'] ? max : e['amount'] * 1.2,
+    );
 
     return Expanded(
       child: Padding(
