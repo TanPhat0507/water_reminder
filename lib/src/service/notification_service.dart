@@ -21,6 +21,9 @@ class NotificationService {
       'Water Reminders',
       description: 'Reminders to drink water',
       importance: Importance.max,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound('water_sound'),
+      enableVibration: true,
     );
 
     try {
@@ -29,6 +32,7 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin
           >()
           ?.createNotificationChannel(channel);
+      debugPrint('Channel created: ${channel.id} with sound: ${channel.sound}');
     } catch (e) {
       print("Error creating notification channel: $e");
     }
@@ -79,6 +83,7 @@ class NotificationService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
+      print('Notification scheduled with sound: notification_sound');
       await _notificationsPlugin.zonedSchedule(
         reminderId.hashCode,
         "💧 Đến giờ uống nước rồi!",
@@ -92,6 +97,7 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.high,
             icon: 'water',
+            playSound: true,
             sound: RawResourceAndroidNotificationSound('water_sound'),
           ),
         ),

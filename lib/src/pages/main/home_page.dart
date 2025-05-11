@@ -550,7 +550,6 @@ class _HomePageContentState extends State<HomePageContent> {
   int? _selectedDropIndex;
   TextEditingController _waterAmountController = TextEditingController();
   double _scale = 1.0;
-  double _previousProgress = 0.0; // Define _previousProgress here
 
   List<Map<String, dynamic>> get _history => widget.history;
 

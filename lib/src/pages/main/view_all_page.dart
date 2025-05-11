@@ -19,6 +19,9 @@ class ViewAllPage extends StatefulWidget {
 
 class _ViewAllPageState extends State<ViewAllPage> {
   late List<Map<String, dynamic>> _localHistory;
+  int _currentIntake = 0; // Initialize current intake
+  double _previousProgress = 0.0; // Initialize previous progress
+  final int _goalIntake = 2000; // Define goal intake (e.g., 2000 ml)
 
   @override
   void initState() {
@@ -43,6 +46,7 @@ class _ViewAllPageState extends State<ViewAllPage> {
     if (user == null) return;
 
     try {
+      // Bắt đầu xoá mục lịch sử uống nước
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -50,16 +54,33 @@ class _ViewAllPageState extends State<ViewAllPage> {
           .doc(docId)
           .delete();
 
+      // Cập nhật lại lượng nước đã uống trong Firestore
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {
+          'todayIntake': FieldValue.increment(-amount), // Giảm số lượng nước
+        },
+      );
+
+      // Cập nhật lại trạng thái cục bộ
       setState(() {
-        _localHistory.removeAt(index);
+        _localHistory.removeAt(index); // Xoá mục lịch sử khỏi danh sách cục bộ
+        _currentIntake -=
+            amount; // Giảm lượng nước đã uống trong trạng thái cục bộ
+        _previousProgress = (_currentIntake / _goalIntake).clamp(
+          0.0,
+          1.0,
+        ); // Cập nhật tiến trình
       });
 
-      widget.onUpdateProgress(amount); // Gọi callback về HomePage
+      // Gọi lại phương thức để cập nhật lại thanh tiến trình trên trang chủ
+      widget.onUpdateProgress(amount);
 
+      // Hiển thị thông báo khi xoá thành công
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Deleted successfully!')));
     } catch (e) {
+      // Xử lý lỗi nếu có
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
