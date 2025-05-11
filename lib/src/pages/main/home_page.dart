@@ -555,10 +555,10 @@ class _HomePageContentState extends State<HomePageContent> {
   List<Map<String, dynamic>> get _history => widget.history;
 
   final List<Map<String, dynamic>> predefinedAmounts = [
-    {'amount': 100, 'image': 'assets/coffee_cup.png'},
-    {'amount': 500, 'image': 'assets/water_bottle.png'},
-    {'amount': 300, 'image': 'assets/soda_glass.png'},
-    {'amount': 150, 'image': 'assets/water_glass.png'},
+    {'amount': 100, 'image': 'assets/small_glass.png'},
+    {'amount': 500, 'image': 'assets/large_bottle.png'},
+    {'amount': 300, 'image': 'assets/large_glass.png'},
+    {'amount': 150, 'image': 'assets/small_bottle.png'},
   ];
 
   @override
@@ -858,10 +858,10 @@ class _HomePageContentState extends State<HomePageContent> {
   // === History Section ===
   Widget buildHistorySection(List<Map<String, dynamic>> history) {
     String getImageForAmount(int amount) {
-      if (amount <= 120) return 'assets/coffee_cup.png';
-      if (amount >= 450) return 'assets/water_bottle.png';
-      if (amount >= 280 && amount <= 320) return 'assets/soda_glass.png';
-      return 'assets/water_glass.png';
+      if (amount <= 120) return 'assets/small_glass.png';
+      if (amount >= 450) return 'assets/large_bottle.png';
+      if (amount >= 280 && amount <= 320) return 'assets/large_glass.png';
+      return 'assets/small_bottle.png';
     }
 
     return Column(

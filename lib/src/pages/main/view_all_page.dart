@@ -27,10 +27,10 @@ class _ViewAllPageState extends State<ViewAllPage> {
   }
 
   String getImageForAmount(int amount) {
-    if (amount <= 120) return 'assets/coffee_cup.png';
-    if (amount >= 450) return 'assets/water_bottle.png';
-    if (amount >= 280 && amount <= 320) return 'assets/soda_glass.png';
-    return 'assets/water_glass.png';
+    if (amount <= 120) return 'assets/small_glass.png';
+    if (amount >= 450) return 'assets/large_bottle.png';
+    if (amount >= 280 && amount <= 320) return 'assets/large_glass.png';
+    return 'assets/small_bottle.png';
   }
 
   Future<void> _deleteHistoryItem(
