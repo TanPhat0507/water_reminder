@@ -86,6 +86,10 @@ flutter:
     - assets/glass.png
     - assets/opps.png
     - assets/congra.png
+    - assets/large_glass.png
+    - assets/small_glass.png
+    - assets/large_bottle.png
+    - assets/small_bottle.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

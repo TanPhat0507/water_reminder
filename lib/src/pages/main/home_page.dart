@@ -5,6 +5,7 @@ import 'dart:async';
 import 'history_page.dart';
 import 'package:water_reminder/src/pages/main/setting_page.dart';
 import 'package:water_reminder/src/service/notification_service.dart';
+import 'package:water_reminder/src/pages/main/view_all_page.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class HomePage extends StatefulWidget {
@@ -136,7 +137,7 @@ class _HomePageState extends State<HomePage> {
                   timestamp.month == today.month &&
                   timestamp.day == today.day;
             })
-            .take(4) // lấy 4 cái mới nhất trong ngày hôm nay
+            .take(4)
             .map((doc) {
               final data = doc.data();
               final timestamp = (data['timestamp'] as Timestamp).toDate();
@@ -144,7 +145,55 @@ class _HomePageState extends State<HomePage> {
                 timestamp,
               ).format(context);
 
-              return {'time': formattedTime, 'amount': data['amount']};
+              return {
+                'time': formattedTime,
+                'amount': data['amount'],
+                'docId': doc.id,
+              };
+            })
+            .toList();
+
+    setState(() {
+      _history.clear();
+      _history.addAll(historyData);
+    });
+  }
+
+  Future<void> fetchAllDrinkingHistory() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('drink_history')
+            .orderBy('timestamp', descending: true) // Sắp xếp theo timestamp
+            .get(); // Lấy tất cả dữ liệu
+
+    final today = DateTime.now();
+
+    final historyData =
+        snapshot.docs
+            .where((doc) {
+              final timestamp = (doc['timestamp'] as Timestamp?)?.toDate();
+              return timestamp != null &&
+                  timestamp.year == today.year &&
+                  timestamp.month == today.month &&
+                  timestamp.day == today.day;
+            })
+            .map((doc) {
+              final data = doc.data();
+              final timestamp = (data['timestamp'] as Timestamp).toDate();
+              final formattedTime = TimeOfDay.fromDateTime(
+                timestamp,
+              ).format(context);
+
+              return {
+                'time': formattedTime,
+                'amount': data['amount'],
+                'docId': doc.id,
+              };
             })
             .toList();
 
@@ -156,15 +205,25 @@ class _HomePageState extends State<HomePage> {
 
   void _addWater(int amount) {
     setState(() {
-      _previousProgress = (_currentIntake / _goalIntake).clamp(0.0, 1.0);
       _currentIntake += amount;
-      _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
+      // Cập nhật _previousProgress khi có sự thay đổi về lượng nước đã uống
+      _previousProgress = (_currentIntake / _goalIntake).clamp(
+        0.0,
+        1.0,
+      ); // Đảm bảo _previousProgress luôn trong khoảng từ 0 đến 1
     });
+
+    // Nếu đã đạt mục tiêu, tiến trình sẽ là 100%
+    // if (_previousProgress == 1.0) {
+    //   _showGoalAchievedDialog(); // Thông báo khi đã đạt mục tiêu
+    // }
+
+    // Cập nhật lại dữ liệu Firebase
     saveDrinkHistory(amount);
     updateTodayIntake(amount);
-    fetchDrinkHistory();
+    fetchDrinkHistory(); // Cập nhật lại lịch sử uống nước
 
-    // Check if goal is reached after adding water
+    // Kiểm tra lại tiến trình
     _checkGoalStatus();
   }
 
@@ -325,6 +384,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void updateProgressAfterDelete(int amount) {
+    setState(() {
+      _currentIntake -= amount;
+      _previousProgress = (_currentIntake / _goalIntake).clamp(0.0, 1.0);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -339,6 +405,8 @@ class _HomePageState extends State<HomePage> {
         history: _history,
         previousProgress: _previousProgress,
         onAddWater: _addWater,
+        onUpdateProgress: updateProgressAfterDelete,
+        onFetchAllHistory: fetchAllDrinkingHistory,
       ),
 
       SettingsScreen(
@@ -416,20 +484,6 @@ class _HomePageState extends State<HomePage> {
         .add({'amount': amount, 'timestamp': FieldValue.serverTimestamp()});
   }
 
-  // void _addWater(int amount) {
-  //   setState(() {
-  //     _previousProgress = (_currentIntake / _goalIntake).clamp(
-  //       0.0,
-  //       1.0,
-  //     ); // Ghi nhớ progress cũ
-  //     _currentIntake += amount;
-  //     _history.add({'time': TimeOfDay.now().format(context), 'amount': amount});
-  //   });
-  //   saveDrinkHistory(amount);
-  //   updateTodayIntake(amount);
-  //   fetchDrinkHistory();
-  // }
-
   Future<void> checkAndResetIntake() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -468,19 +522,23 @@ class _HomePageState extends State<HomePage> {
 }
 
 class HomePageContent extends StatefulWidget {
-  final double currentIntake;
+  double currentIntake;
   final double goalIntake;
   final List<Map<String, dynamic>> history;
   final double previousProgress;
   final Function(int) onAddWater;
+  final Function(int) onUpdateProgress;
+  final Future<void> Function() onFetchAllHistory;
 
-  const HomePageContent({
+  HomePageContent({
     Key? key,
     required this.currentIntake,
     required this.goalIntake,
     required this.history,
     required this.onAddWater,
     required this.previousProgress,
+    required this.onUpdateProgress,
+    required this.onFetchAllHistory,
   }) : super(key: key);
 
   @override
@@ -488,12 +546,19 @@ class HomePageContent extends StatefulWidget {
 }
 
 class _HomePageContentState extends State<HomePageContent> {
-  // late double _currentIntake;
-  // late double _goalIntake;
   double _customAmount = 0.0;
   int? _selectedDropIndex;
   TextEditingController _waterAmountController = TextEditingController();
   double _scale = 1.0;
+
+  List<Map<String, dynamic>> get _history => widget.history;
+
+  final List<Map<String, dynamic>> predefinedAmounts = [
+    {'amount': 100, 'image': 'assets/small_glass.png'},
+    {'amount': 500, 'image': 'assets/large_bottle.png'},
+    {'amount': 300, 'image': 'assets/large_glass.png'},
+    {'amount': 150, 'image': 'assets/small_bottle.png'},
+  ];
 
   @override
   void initState() {
@@ -576,14 +641,6 @@ class _HomePageContentState extends State<HomePageContent> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white,
-                      // boxShadow: [
-                      //   BoxShadow(
-                      //     color: Colors.grey.withOpacity(0.3),
-                      //     spreadRadius: 3,
-                      //     blurRadius: 5,
-                      //     offset: Offset(0, 4),
-                      //   ),
-                      // ],
                     ),
                   ),
                 ),
@@ -699,9 +756,11 @@ class _HomePageContentState extends State<HomePageContent> {
                 Wrap(
                   spacing: 20,
                   children:
-                      [100, 200, 300, 400].asMap().entries.map((entry) {
+                      predefinedAmounts.asMap().entries.map((entry) {
                         final index = entry.key;
-                        final amount = entry.value;
+                        final item = entry.value;
+                        final amount = item['amount'];
+                        final imagePath = item['image'];
 
                         return GestureDetector(
                           onTapDown: (_) {
@@ -727,11 +786,7 @@ class _HomePageContentState extends State<HomePageContent> {
                             curve: Curves.easeOutBack,
                             child: Column(
                               children: [
-                                Icon(
-                                  Icons.water_drop,
-                                  size: 40,
-                                  color: Colors.blue,
-                                ),
+                                Image.asset(imagePath, width: 50, height: 50),
                                 SizedBox(height: 4),
                                 Text(
                                   '$amount ml',
@@ -743,6 +798,7 @@ class _HomePageContentState extends State<HomePageContent> {
                         );
                       }).toList(),
                 ),
+
                 const SizedBox(height: 20),
                 Text(
                   'Or',
@@ -800,6 +856,13 @@ class _HomePageContentState extends State<HomePageContent> {
 
   // === History Section ===
   Widget buildHistorySection(List<Map<String, dynamic>> history) {
+    String getImageForAmount(int amount) {
+      if (amount <= 120) return 'assets/small_glass.png';
+      if (amount >= 450) return 'assets/large_bottle.png';
+      if (amount >= 280 && amount <= 320) return 'assets/large_glass.png';
+      return 'assets/small_bottle.png';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -813,8 +876,18 @@ class _HomePageContentState extends State<HomePageContent> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () {
-                  // TODO: Implement view all page if needed
+                onPressed: () async {
+                  await widget.onFetchAllHistory();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ViewAllPage(
+                            history: widget.history,
+                            onUpdateProgress: widget.onUpdateProgress,
+                          ),
+                    ),
+                  );
                 },
                 child: Text(
                   'View all →',
@@ -852,7 +925,9 @@ class _HomePageContentState extends State<HomePageContent> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 image: DecorationImage(
-                                  image: AssetImage("assets/glass.png"),
+                                  image: AssetImage(
+                                    getImageForAmount(history[index]['amount']),
+                                  ),
                                   fit: BoxFit.cover,
                                 ),
                               ),

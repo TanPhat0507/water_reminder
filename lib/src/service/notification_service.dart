@@ -21,6 +21,9 @@ class NotificationService {
       'Water Reminders',
       description: 'Reminders to drink water',
       importance: Importance.max,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound('water_sound'),
+      enableVibration: true,
     );
 
     try {
@@ -29,6 +32,7 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin
           >()
           ?.createNotificationChannel(channel);
+      debugPrint('Channel created: ${channel.id} with sound: ${channel.sound}');
     } catch (e) {
       print("Error creating notification channel: $e");
     }
@@ -60,8 +64,12 @@ class NotificationService {
     required TimeOfDay time,
     required List<String> days, // có thể rỗng
   }) async {
-    if (days.isEmpty) {
-      final now = tz.TZDateTime.now(tz.local);
+    final now = tz.TZDateTime.now(tz.local);
+    print('Type of days: ${days.runtimeType}');
+
+    print('Days: $days');
+
+    if (days.isEmpty || days.every((day) => day.trim().isEmpty)) {
       tz.TZDateTime scheduled = tz.TZDateTime(
         tz.local,
         now.year,
@@ -75,9 +83,10 @@ class NotificationService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
+      print('Notification scheduled with sound: notification_sound');
       await _notificationsPlugin.zonedSchedule(
         reminderId.hashCode,
-        "💧 Time to Hydrate!",
+        "💧 Đến giờ uống nước rồi!",
         _getMessageByTime(time.hour),
         scheduled,
         const NotificationDetails(
@@ -88,18 +97,13 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.high,
             icon: 'water',
+            playSound: true,
             sound: RawResourceAndroidNotificationSound('water_sound'),
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
-      print('🔔 Scheduled notification for ${scheduled.toString()}');
-      Fluttertoast.showToast(
-        msg:
-            "🔔 Notification scheduled at ${scheduled.hour}:${scheduled.minute}",
-      );
     } else {
-      // Có chọn ngày => lặp lại hàng tuần
       for (final day in days) {
         final weekday = _weekdayStringToInt(day);
         final int id = _generateNotificationId(reminderId, weekday);
@@ -111,7 +115,7 @@ class NotificationService {
 
         await _notificationsPlugin.zonedSchedule(
           id,
-          "💧 Time to Hydrate!",
+          "💧 Đến giờ uống nước rồi!",
           message,
           scheduledTime,
           const NotificationDetails(
@@ -123,7 +127,7 @@ class NotificationService {
               priority: Priority.high,
             ),
           ),
-          matchDateTimeComponents: DateTimeComponents.time,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         );
       }
