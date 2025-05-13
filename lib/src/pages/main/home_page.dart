@@ -576,7 +576,7 @@ class _HomePageContentState extends State<HomePageContent> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           buildProgressCircle(size),
-          SizedBox(height: 20),
+          SizedBox(height: 10),
           buildHistorySection(widget.history),
           SizedBox(height: 20),
         ],
@@ -605,6 +605,7 @@ class _HomePageContentState extends State<HomePageContent> {
           return Container(
             width: size,
             height: size,
+            margin: EdgeInsets.only(bottom: 50),
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -672,7 +673,7 @@ class _HomePageContentState extends State<HomePageContent> {
                   ),
                 ),
                 Positioned(
-                  bottom: -20,
+                  bottom: -25,
                   child: AnimatedScale(
                     scale: _scale,
                     duration: Duration(milliseconds: 150),
@@ -897,7 +898,7 @@ class _HomePageContentState extends State<HomePageContent> {
             ],
           ),
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 4),
         Divider(
           color: Colors.grey.withOpacity(0.3),
           thickness: 2,
