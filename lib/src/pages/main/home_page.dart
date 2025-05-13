@@ -605,7 +605,7 @@ class _HomePageContentState extends State<HomePageContent> {
           return Container(
             width: size,
             height: size,
-            margin: EdgeInsets.only(bottom: 50),
+            margin: EdgeInsets.only(bottom: 70),
             child: Stack(
               alignment: Alignment.center,
               children: [
