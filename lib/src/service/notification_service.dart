@@ -86,7 +86,8 @@ class NotificationService {
       print('Notification scheduled with sound: notification_sound');
       await _notificationsPlugin.zonedSchedule(
         reminderId.hashCode,
-        "💧 Đến giờ uống nước rồi!",
+        // "💧 Đến giờ uống nước rồi!",
+        "Wake up time",
         _getMessageByTime(time.hour),
         scheduled,
         const NotificationDetails(
@@ -115,7 +116,7 @@ class NotificationService {
 
         await _notificationsPlugin.zonedSchedule(
           id,
-          "💧 Đến giờ uống nước rồi!",
+          " Wake up time",
           message,
           scheduledTime,
           const NotificationDetails(
@@ -201,39 +202,44 @@ class NotificationService {
 
   static String _getMessageByTime(int hour) {
     const morning = [
-      "Ngày mới tươi như giọt sương – bạn cũng nên uống một ngụm nước đầu tiên nhé! 🌞",
-      "Cốc nước sáng sớm là năng lượng mở màn cho cả ngày! 🚿",
-      "Dậy sớm uống nước, bạn giống như cây xanh được tưới mát vậy đó! 🌿",
-      "Tự thưởng bản thân một ly nước và nụ cười đầu ngày nào! ☀️",
-      "Cơ thể bạn đã ‘online’ chưa? Một ngụm nước để khởi động nhé! 🛫",
+      "Wake up",
+      // "Ngày mới tươi như giọt sương – bạn cũng nên uống một ngụm nước đầu tiên nhé! 🌞",
+      // "Cốc nước sáng sớm là năng lượng mở màn cho cả ngày! 🚿",
+      // "Dậy sớm uống nước, bạn giống như cây xanh được tưới mát vậy đó! 🌿",
+      // "Tự thưởng bản thân một ly nước và nụ cười đầu ngày nào! ☀️",
+      // "Cơ thể bạn đã ‘online’ chưa? Một ngụm nước để khởi động nhé! 🛫",
     ];
     const noon = [
-      "Đừng để nắng trưa làm bạn héo – uống nước để giữ sức sống nha! 🌞💧",
-      "Bữa trưa ngon hơn khi bạn có đủ nước trong người! 🍱💦",
-      "Chút nước – một sự hồi sinh nhẹ giữa ngày dài! 🌊",
-      "Bạn giống như pin điện thoại – cần ‘sạc nước’ mỗi trưa! 🔋",
-      "Khô môi chưa? Uống nước là cách yêu bản thân giữa ngày! 💙",
+      "Wake up",
+      // "Đừng để nắng trưa làm bạn héo – uống nước để giữ sức sống nha! 🌞💧",
+      // "Bữa trưa ngon hơn khi bạn có đủ nước trong người! 🍱💦",
+      // "Chút nước – một sự hồi sinh nhẹ giữa ngày dài! 🌊",
+      // "Bạn giống như pin điện thoại – cần ‘sạc nước’ mỗi trưa! 🔋",
+      // "Khô môi chưa? Uống nước là cách yêu bản thân giữa ngày! 💙",
     ];
     const afternoon = [
-      "Đừng để cơ thể ‘đuối pin’ – một ngụm nước giúp bạn lấy lại phong độ! ⚡",
-      "Não bộ cần nước để tiếp tục sáng tạo đấy! Uống chút nhé! 🧠💧",
-      "Một ly nước = một lần refresh cho bạn! 🔄",
-      "Tặng cơ thể bạn một ‘điểm tâm chiều’ – là nước mát lành! 🫖",
-      "Chiều nay, bạn uống nước chưa? Hãy làm điều đó cho chính mình! 🤗",
+      "Wake up",
+      // "Đừng để cơ thể ‘đuối pin’ – một ngụm nước giúp bạn lấy lại phong độ! ⚡",
+      // "Não bộ cần nước để tiếp tục sáng tạo đấy! Uống chút nhé! 🧠💧",
+      // "Một ly nước = một lần refresh cho bạn! 🔄",
+      // "Tặng cơ thể bạn một ‘điểm tâm chiều’ – là nước mát lành! 🫖",
+      // "Chiều nay, bạn uống nước chưa? Hãy làm điều đó cho chính mình! 🤗",
     ];
     const evening = [
-      "Cả ngày đã mệt rồi, một ly nước là món quà cho cơ thể bạn đó! 🎁",
-      "Tối về, mọi thứ dịu lại – đừng quên dịu dàng với bản thân bằng nước nhé! 🌙",
-      "Một chút nước, một chút thư giãn – bạn xứng đáng mà! 🛋️",
-      "Uống nước lúc này như đang vỗ về tâm hồn vậy… 🍵",
-      "Bạn đã chăm sóc bản thân tốt chưa? Đừng quên uống nước! 💙",
+      "Wake up",
+      // "Cả ngày đã mệt rồi, một ly nước là món quà cho cơ thể bạn đó! 🎁",
+      // "Tối về, mọi thứ dịu lại – đừng quên dịu dàng với bản thân bằng nước nhé! 🌙",
+      // "Một chút nước, một chút thư giãn – bạn xứng đáng mà! 🛋️",
+      // "Uống nước lúc này như đang vỗ về tâm hồn vậy… 🍵",
+      // "Bạn đã chăm sóc bản thân tốt chưa? Đừng quên uống nước! 💙",
     ];
     const night = [
-      "Một ngụm nước nhẹ để khép lại ngày dài – ngủ ngon nhé! 💤",
-      "Giấc mơ đẹp bắt đầu từ một cơ thể đủ nước! 🌌",
-      "Nước là lời chúc ngủ ngon ngọt ngào nhất dành cho bạn! 😴💧",
-      "Tắt đèn, tắt lo âu, uống nước và say giấc nào… 🌙✨",
-      "Đừng để cơ thể khát khi tâm trí đang nghỉ ngơi – uống nước trước khi ngủ nhé! 🌜",
+      "Wake up",
+      // "Một ngụm nước nhẹ để khép lại ngày dài – ngủ ngon nhé! 💤",
+      // "Giấc mơ đẹp bắt đầu từ một cơ thể đủ nước! 🌌",
+      // "Nước là lời chúc ngủ ngon ngọt ngào nhất dành cho bạn! 😴💧",
+      // "Tắt đèn, tắt lo âu, uống nước và say giấc nào… 🌙✨",
+      // "Đừng để cơ thể khát khi tâm trí đang nghỉ ngơi – uống nước trước khi ngủ nhé! 🌜",
     ];
 
     if (hour >= 6 && hour < 11)

@@ -208,10 +208,7 @@ class _ReminderPageState extends State<ReminderPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Water reminders',
-          style: TextStyle(color: Colors.black),
-        ),
+        title: const Text('Alarm', style: TextStyle(color: Colors.black)),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
@@ -251,54 +248,30 @@ class _ReminderPageState extends State<ReminderPage> {
   }
 
   Widget buildReminderItem(Reminder reminder) {
-    return InkWell(
-      onTap: () => _navigateToEdit(reminder),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xff19A7CE), width: 1),
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.white,
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      child: ListTile(
+        onTap: () => _navigateToEdit(reminder),
+        leading: CircleAvatar(
+          backgroundColor: const Color(0xFF19A7CE),
+          child: const Icon(Icons.alarm, color: Colors.white),
         ),
-        child: Row(
-          children: [
-            const Icon(Icons.access_time, color: Colors.black54, size: 20),
-            const SizedBox(width: 12),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    reminder.time,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    reminder.getFormattedDays(),
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-
-            IconButton(
-              iconSize: 35,
-              icon: Icon(
-                reminder.isEnabled ? Icons.toggle_on : Icons.toggle_off,
-                color: reminder.isEnabled ? Colors.blue : Colors.grey,
-              ),
-              onPressed: () async {
-                await _toggleReminderStatus(reminder);
-              },
-            ),
-          ],
+        title: Text(
+          reminder.time,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          reminder.getFormattedDays(),
+          style: const TextStyle(fontSize: 13, color: Colors.grey),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Switch(
+          value: reminder.isEnabled,
+          activeColor: const Color(0xFF19A7CE),
+          onChanged: (_) => _toggleReminderStatus(reminder),
         ),
       ),
     );
