@@ -209,7 +209,7 @@ class _ReminderPageState extends State<ReminderPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          'Water reminders',
+          'Simple alarm',
           style: TextStyle(color: Colors.black),
         ),
         centerTitle: true,
